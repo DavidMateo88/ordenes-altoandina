@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Órdenes de Compra</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Órdenes de Compra</h1>
+  <!-- Formulario de login -->
+  <div id="login-form">
+    <input type="text" id="username" placeholder="Usuario" required>
+    <input type="password" id="password" placeholder="Contraseña" required>
+    <button onclick="login()">Iniciar Sesión</button>
+  </div>
+  <!-- Panel principal -->
+  <div id="app" style="display: none;">
+    <!-- Formulario para crear/editar órdenes (Solicitante) -->
+    <div id="orden-form" style="display: none;">
+      <h2>Crear/Editar Orden</h2>
+      <input type="text" id="proyecto" placeholder="Proyecto" required>
+      <input type="text" id="ubicacion" placeholder="Ubicación" required>
+      <select id="deposito" required>
+        <option value="">Seleccionar Depósito</option>
+      </select>
+      <div id="items">
+        <div class="item-row">
+          <input type="text" class="item-descripcion" placeholder="Descripción" required>
+          <input type="number" class="item-cantidad" placeholder="Cantidad" required min="1">
+          <input type="text" class="item-unidad" placeholder="Unidad" required>
+          <button onclick="this.parentElement.remove()">Eliminar</button>
+        </div>
+      </div>
+      <button onclick="addItemRow()">Añadir Ítem</button>
+      <button id="create-orden" onclick="createOrden()">Crear Orden</button>
+      <button id="save-orden" onclick="saveOrden()" style="display: none;">Guardar Cambios</button>
+    </div>
+    <!-- Formulario para cotizar órdenes (Cotizador) -->
+    <div id="cotizar-form" style="display: none;">
+      <h2>Cotizar Orden</h2>
+      <div id="cotizar-orden-details"></div>
+      <div id="cotizar-items"></div>
+      <button id="save-cotizacion" onclick="saveCotizacion()" style="display: none;">Guardar Cotización</button>
+      <!-- Cargar factura -->
+      <div id="factura-form" style="display: none;">
+        <h3>Cargar Factura</h3>
+        <input type="text" id="factura" placeholder="Número de Factura">
+        <button onclick="uploadFactura()">Cargar Factura</button>
+      </div>
+    </div>
+    <!-- Lista de órdenes -->
+    <h2>Mis Órdenes</h2>
+    <div id="ordenes-container"></div>
+    <!-- Gestión de stock (solo Gerente) -->
+    <div id="move-stock" style="display: none;">
+      <h2>Mover Stock</h2>
+      <input type="text" id="producto" placeholder="Producto" required>
+      <select id="origen-deposito" required>
+        <option value="">Seleccionar Depósito Origen</option>
+      </select>
+      <select id="destino-deposito" required>
+        <option value="">Seleccionar Depósito Destino</option>
+      </select>
+      <input type="number" id="cantidad" placeholder="Cantidad" required min="1">
+      <button onclick="moveStock()">Mover Stock</button>
+    </div>
+    <!-- Gestión de depósitos (solo Gerente) -->
+    <div id="gestion-depositos" style="display: none;">
+      <h2>Gestionar Depósitos</h2>
+      <input type="text" id="nuevo-deposito-nombre" placeholder="Nombre del Depósito">
+      <input type="text" id="nuevo-deposito-ubicacion" placeholder="Ubicación del Depósito">
+      <button onclick="createDeposito()">Crear Depósito</button>
+      <div id="depositos-container"></div>
+    </div>
+    <!-- Informe de stock (solo Gerente) -->
+    <div id="stock-report" style="display: none;">
+      <h2>Informe de Stock</h2>
+      <button onclick="generateStockPDF()">Generar PDF de Stock</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

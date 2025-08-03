@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "es,en",
+  "words": [
+    "orden",
+    "ordenes",
+    "reportes",
+    "depositos",
+    "Conectar",
+    "Rutas",
+    "Ruta",
+    "raíz",
+    "Órdenes",
+    "Compra",
+    "Servir",
+    "Iniciar",
+    "servidor",
+    "Servidor",
+    "corriendo"
+  ],
+  "flagWords": [],
+  "ignorePaths": [
+    "node_modules/**",
+    "package-lock.json"
+  ]
+}
