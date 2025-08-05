@@ -41,7 +41,7 @@ const generateOrdenPDF = async (req, res) => {
 
     doc.pipe(res);
     doc.fontSize(20).text('Orden de Compra', { align: 'center' });
-    doc.fontSize(12).text('[Nombre de la Empresa]', { align: 'center' });
+    doc.fontSize(12).text('[ALTO ANDINA SRL]', { align: 'center' });
     doc.moveDown();
 
     doc.fontSize(14).text(`Orden #${orden._id}`, { align: 'left' });
@@ -108,7 +108,7 @@ const generateStockPDF = async (req, res) => {
 
     doc.pipe(res);
     doc.fontSize(20).text('Informe de Stock', { align: 'center' });
-    doc.fontSize(12).text('[Nombre de la Empresa]', { align: 'center' });
+    doc.fontSize(12).text('[ALTO ANDINA SRL]', { align: 'center' });
     doc.moveDown();
 
     doc.fontSize(14).text(`Fecha: ${new Date().toISOString().split('T')[0]}`, { align: 'left' });
