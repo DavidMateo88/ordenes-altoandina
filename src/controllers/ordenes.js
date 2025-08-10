@@ -344,9 +344,9 @@ const deleteOrden = async (req, res) => {
     const { id } = req.params;
     const orden = await Orden.findById(id);
     if (!orden) return res.status(404).json({ error: 'Orden no encontrada' });
-    if (orden.estado !== 'Rechazada') {
-      return res.status(400).json({ error: 'Solo se pueden eliminar órdenes rechazadas' });
-    }
+    //if (orden.estado !== 'Rechazada'|| orden.estado !== 'Completada') {
+    //  return res.status(400).json({ error: 'Solo eliminar órdenes rechazadas' });
+    //}
 
     await Orden.deleteOne({ _id: id });
     res.json({ message: 'Orden eliminada exitosamente' });

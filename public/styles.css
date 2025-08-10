@@ -2,6 +2,12 @@ body {
   font-family: Arial, sans-serif;
   margin: 20px;
 }
+body {
+  background-image: url("https://altoandina.com.ar/wp-content/uploads/2019/04/cropped-Iso-01-180x180.png"); /* Reemplaza esta URL por la tuya */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
 div {
   margin-bottom: 10px;
 }

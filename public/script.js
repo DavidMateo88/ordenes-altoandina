@@ -123,7 +123,7 @@ async function loadOrdenes() {
           <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
           <button onclick="approveOrden('${orden._id}')">Aprobar</button>
         ` : ''}
-        ${role === 'Gerente' && orden.estado === 'Rechazada' ? `
+        ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada' ) ? `
           <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
         ` : ''}
       `;
