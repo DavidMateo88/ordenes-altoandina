@@ -1,11 +1,12 @@
 body {
   font-family: Arial, sans-serif;
+  color: rgb(99, 100, 3);
   margin: 20px;
   
 }
 body {
-  background-image: url("https://altoandina.com.ar/wp-content/uploads/2019/04/cropped-Iso-01-180x180.png"); /* Reemplaza esta URL por la tuya */
-  background-size: contain;
+  background-image: url("https://img1.wallspic.com/crops/6/4/3/0/80346/80346-verde-luz-dispositivo_electronico-dispositivo_de_entrada-instrumento_electronico-3840x2160.jpg"); /* Reemplaza esta URL por la tuya */
+  background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
