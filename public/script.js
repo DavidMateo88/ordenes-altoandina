@@ -453,44 +453,115 @@ function saveOrden() {
 
 // Cotizar orden
 async function cotizarOrden(id) {
+  document.getElementById('cotizar-form').style.display = 'block';
+
   try {
     const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Error al cargar orden');
     }
+
     const orden = await response.json();
-    console.log('Orden cargada:', orden); // Log para depuración
     currentOrdenId = id;
+
+    // Mostrar detalles generales
     document.getElementById('cotizar-orden-details').innerHTML = `
       <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
       <p>Ubicación: ${orden.ubicacion}</p>
       <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
     `;
+
     const itemsContainer = document.getElementById('items-container');
-    itemsContainer.innerHTML = ''; // Asegurar que el contenedor esté limpio
+    itemsContainer.innerHTML = '';
+
     if (!orden.items || orden.items.length === 0) {
       itemsContainer.innerHTML = '<p>No hay ítems en esta orden.</p>';
-      console.warn('No se encontraron ítems en la orden:', orden._id);
-    } else {
-      orden.items.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'item-row';
-        row.innerHTML = `
-          <input type="text" class="item-descripcion" value="${item.descripcion || ''}" readonly>
-          <input type="number" class="item-cantidad" value="${item.cantidad || 0}" readonly>
-          <input type="text" class="item-unidad" value="${item.unidad_medida || ''}" readonly>
-          <input type="number" class="item-precio" value="${item.precio_unitario || ''}" placeholder="Precio Unitario" step="0.01">
-        `;
-        itemsContainer.appendChild(row);
-      });
+      return;
     }
-    document.getElementById('comentarios-cotizacion').value = orden.comentarios_cotizacion || '';
+
+    // Renderizar ítems
+    orden.items.forEach(item => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'item-row';
+      itemDiv.innerHTML = `
+        <input type="text" class="item-descripcion" value="${item.descripcion || ''}" readonly>
+        <input type="text" class="item-codigo" value="${item.codigo || ''}" readonly>
+        <input type="number" class="item-cantidad" value="${item.cantidad || 0}" readonly>
+        <input type="text" class="item-unidad" value="${item.unidad_medida || ''}" readonly>
+        <input type="number" class="item-precio" value="${item.precio_unitario || ''}" placeholder="Precio Unitario" step="0.01">
+        <input type="number" class="item-subtotal" value="${item.subtotal || 0}" placeholder="Subtotal" readonly>
+      `;
+      itemsContainer.appendChild(itemDiv);
+
+      // Actualizar subtotal en tiempo real
+      const precioInput = itemDiv.querySelector('.item-precio');
+      precioInput.addEventListener('input', () => {
+        const cantidad = parseFloat(itemDiv.querySelector('.item-cantidad').value) || 0;
+        const precio = parseFloat(precioInput.value) || 0;
+        const subtotal = +(cantidad * precio).toFixed(2);
+        itemDiv.querySelector('.item-subtotal').value = subtotal;
+      });
+    });
+
+    // Campo de comentarios
+    const comentariosDiv = document.createElement('div');
+    comentariosDiv.innerHTML = `
+      <label for="comentarios-cotizacion">Comentarios de Cotización:</label>
+      <textarea id="comentarios-cotizacion" placeholder="Añade comentarios para el gerente">${orden.comentarios_cotizacion || ''}</textarea>
+    `;
+    itemsContainer.appendChild(comentariosDiv);
+
+    // Manejo del envío
+    document.getElementById('orden-form').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const items = Array.from(document.querySelectorAll('.item-row')).map(row => {
+        const cantidad = parseFloat(row.querySelector('.item-cantidad').value) || 0;
+        const precio = parseFloat(row.querySelector('.item-precio').value) || 0;
+        return {
+          descripcion: row.querySelector('.item-descripcion').value,
+          codigo: row.querySelector('.item-codigo').value || undefined,
+          cantidad,
+          unidad_medida: row.querySelector('.item-unidad').value,
+          precio_unitario: precio,
+          subtotal: +(cantidad * precio).toFixed(2)
+        };
+      });
+
+      try {
+        const cotizarResponse = await fetch(`http://localhost:5000/api/ordenes/cotizar/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            items,
+            comentarios_cotizacion: document.getElementById('comentarios-cotizacion').value
+          })
+        });
+
+        if (cotizarResponse.ok) {
+          alert('✅ Orden cotizada exitosamente');
+          document.getElementById('cotizar-form').style.display = 'none';
+          loadOrdenes(); // Recargar lista si tenés esa función
+        } else {
+          const error = await cotizarResponse.json();
+          alert(`❌ Error: ${error.error}`);
+        }
+      } catch (err) {
+        console.error('Error al cotizar orden:', err);
+        alert('❌ Error al cotizar orden');
+      }
+    };
+
   } catch (err) {
     console.error('Error al cargar orden:', err);
-    alert(`Error al cargar orden: ${err.message}`);
+    alert(`❌ Error al cargar orden: ${err.message}`);
   }
 }
 
@@ -907,3 +978,4 @@ async function loadProductosSugeridos() {
     alert('Error al cargar productos');
   }
 }
+window.cotizarOrden = cotizarOrden;

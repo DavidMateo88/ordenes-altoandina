@@ -39,12 +39,15 @@
       <button id="save-orden" onclick="saveOrden()" style="display: none;">Guardar Cambios</button>
     </div>
     <!-- Formulario para cotizar órdenes (Cotizador) -->
-    <div id="cotizar-form" style="display: none;">
-      <h2>Cotizar Orden</h2>
-      <div id="cotizar-orden-details"></div>
-      <div id="items-container"></div>
-      <textarea id="comentarios-cotizacion" placeholder="Comentarios de Cotización (opcional)"></textarea>
-      <button onclick="saveCotizacion()">Guardar Cotización</button>
+<div id="cotizar-form" style="display: none;">
+  <h2>Cotizar Orden</h2>
+  <div id="cotizar-orden-details"></div>
+<form id="orden-form">
+    <div id="items-container"></div>
+    <textarea id="comentarios-cotizacion" placeholder="Comentarios de Cotización (opcional)"></textarea>
+    <button type="submit">Guardar Cotización</button>
+  </form>
+
       <!-- Cargar factura -->
       <div id="factura-form" style="display: none;">
         <h3>Cargar Facturas</h3>
