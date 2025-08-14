@@ -2,40 +2,60 @@ body {
   font-family: Arial, sans-serif;
   margin: 20px;
 }
-body {
-  background-image: url("https://altoandina.com.ar/wp-content/uploads/2019/04/cropped-Iso-01-180x180.png"); /* Reemplaza esta URL por la tuya */
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+
+h1, h2, h3 {
+  color: #333;
 }
-div {
-  margin-bottom: 10px;
+
+#login-form, #orden-form, #cotizar-form, #move-stock, #gestion-depositos, #stock-report, #ordenes-controls {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
-input, select, button {
-  margin: 5px;
-  padding: 8px;
-  font-size: 14px;
-}
-.item-row {
+
+.item-row, .factura-input {
   display: flex;
   gap: 10px;
-  align-items: center;
-}
-.orden, .deposito {
-  border: 1px solid #ccc;
-  padding: 10px;
   margin-bottom: 10px;
 }
-#ordenes-container, #depositos-container {
+
+.item-row input, .factura-input input {
+  flex: 1;
+}
+
+#ordenes-container .orden, #depositos-container .deposito {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+#stock-deposito-container {
   margin-top: 20px;
 }
+
+#stock-items div {
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
 button {
-  cursor: pointer;
+  padding: 8px 16px;
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
+  cursor: pointer;
 }
+
 button:hover {
   background-color: #0056b3;
+}
+
+input, select, textarea {
+  padding: 8px;
+  margin: 5px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }

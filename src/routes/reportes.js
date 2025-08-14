@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { generateOrdenPDF, generateStockPDF } = require('../controllers/reportes');
+const reportesController = require('../controllers/reportes');
+const authMiddleware = require('../middleware/auth');
 
-router.get('/orden/:id', generateOrdenPDF);
-router.get('/stock', generateStockPDF);
+router.get('/orden/:id', authMiddleware, reportesController.generateOrdenPDF);
+router.get('/stock', authMiddleware, reportesController.generateStockPDF);
 
 module.exports = router;

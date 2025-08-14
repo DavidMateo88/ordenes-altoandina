@@ -19,12 +19,14 @@
     <!-- Formulario para crear/editar órdenes (Solicitante) -->
     <div id="orden-form" style="display: none;">
       <h2>Crear/Editar Orden</h2>
+      <input type="hidden" id="orden-id">
       <input type="text" id="proyecto" placeholder="Proyecto" required>
       <input type="text" id="ubicacion" placeholder="Ubicación" required>
       <select id="deposito" required>
         <option value="">Seleccionar Depósito</option>
       </select>
-      <div id="items">
+      <textarea id="observaciones" placeholder="Observaciones (opcional)"></textarea>
+      <div id="items-container">
         <div class="item-row">
           <input type="text" class="item-descripcion" placeholder="Descripción" required>
           <input type="number" class="item-cantidad" placeholder="Cantidad" required min="1">
@@ -41,22 +43,48 @@
       <h2>Cotizar Orden</h2>
       <div id="cotizar-orden-details"></div>
       <div id="items-container"></div>
-      <div id="cotizar-items"></div>
-      <button id="save-cotizacion" onclick="saveCotizacion()" style="display: none;">Guardar Cotización</button>
+      <textarea id="comentarios-cotizacion" placeholder="Comentarios de Cotización (opcional)"></textarea>
+      <button onclick="saveCotizacion()">Guardar Cotización</button>
       <!-- Cargar factura -->
       <div id="factura-form" style="display: none;">
-        <h3>Cargar Factura</h3>
-        <input type="text" id="factura" placeholder="Número de Factura">
-        <button onclick="uploadFactura()">Cargar Factura</button>
+        <h3>Cargar Facturas</h3>
+        <div id="facturas-container">
+          <input type="text" class="factura-input" placeholder="Número de Factura">
+        </div>
+        <button onclick="addFacturaInput()">Añadir Factura</button>
+        <button onclick="uploadFacturas()">Cargar Facturas</button>
       </div>
     </div>
     <!-- Lista de órdenes -->
     <h2>Mis Órdenes</h2>
+    <div id="ordenes-controls" style="display: none;">
+      <label for="filtro-estado">Filtrar por estado:</label>
+      <select id="filtro-estado">
+        <option value="">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Cotizada">Cotizada</option>
+        <option value="Modificada">Modificada</option>
+        <option value="Aprobada">Aprobada</option>
+        <option value="Rechazada">Rechazada</option>
+        <option value="Completada">Completada</option>
+      </select>
+      <label for="filtro-proyecto">Filtrar por proyecto:</label>
+      <select id="filtro-proyecto">
+        <option value="">Todos</option>
+      </select>
+      <label for="ordenar-por">Ordenar por:</label>
+      <select id="ordenar-por">
+        <option value="fecha">Fecha de carga</option>
+        <option value="estado">Estado</option>
+      </select>
+      <button onclick="toggleFinalizadas()">Mostrar/Ocultar Finalizadas</button>
+    </div>
     <div id="ordenes-container"></div>
     <!-- Gestión de stock (solo Gerente) -->
     <div id="move-stock" style="display: none;">
       <h2>Mover Stock</h2>
-      <input type="text" id="producto" placeholder="Producto" required>
+      <input type="text" id="producto" placeholder="Buscar producto..." list="productos-sugeridos">
+      <datalist id="productos-sugeridos"></datalist>
       <select id="origen-deposito" required>
         <option value="">Seleccionar Depósito Origen</option>
       </select>
@@ -65,6 +93,7 @@
       </select>
       <input type="number" id="cantidad" placeholder="Cantidad" required min="1">
       <button onclick="moveStock()">Mover Stock</button>
+      <div id="stock-deposito-container"></div>
     </div>
     <!-- Gestión de depósitos (solo Gerente) -->
     <div id="gestion-depositos" style="display: none;">

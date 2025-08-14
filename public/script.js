@@ -1,6 +1,11 @@
 let token = null;
 let role = null;
 let currentOrdenId = null;
+let showFinalizadas = true;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // No cargar productos automáticamente al inicio
+});
 
 // Iniciar sesión
 async function login() {
@@ -35,14 +40,19 @@ async function login() {
       document.getElementById('cotizar-form').style.display = 'block';
       loadOrdenes();
     } else if (role === 'Gerente') {
-      document.getElementById('orden-form').style.display = 'none';
+      document.getElementById('ordenes-controls').style.display = 'block';
       document.getElementById('move-stock').style.display = 'block';
       document.getElementById('gestion-depositos').style.display = 'block';
       document.getElementById('stock-report').style.display = 'block';
       loadDepositos();
       loadOrdenes();
       loadDepositosForGestion();
+      loadProyectosForFilter();
+      loadProductosSugeridos();
     }
+    document.getElementById('filtro-estado').addEventListener('change', loadOrdenes);
+    document.getElementById('filtro-proyecto').addEventListener('change', loadOrdenes);
+    document.getElementById('ordenar-por').addEventListener('change', loadOrdenes);
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
     alert('Error al iniciar sesión');
@@ -55,7 +65,12 @@ async function loadDepositos() {
     const response = await fetch('http://localhost:5000/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar depósitos');
+    }
     const depositos = await response.json();
+    console.log('Depósitos cargados:', depositos); // Log para depuración
     const select = document.getElementById('deposito');
     const origenSelect = document.getElementById('origen-deposito');
     const destinoSelect = document.getElementById('destino-deposito');
@@ -70,65 +85,224 @@ async function loadDepositos() {
       origenSelect.appendChild(option.cloneNode(true));
       destinoSelect.appendChild(option.cloneNode(true));
     });
+    // Asegurar que el evento change esté configurado
+    origenSelect.removeEventListener('change', handleDepositoChange); // Evitar múltiples listeners
+    origenSelect.addEventListener('change', handleDepositoChange);
   } catch (err) {
     console.error('Error al cargar depósitos:', err);
-    alert('Error al cargar depósitos');
+    alert(`Error al cargar depósitos: ${err.message}`);
+  }
+}
+
+function handleDepositoChange() {
+  const depositoId = document.getElementById('origen-deposito').value;
+  if (depositoId) {
+    console.log('Depósito seleccionado:', depositoId); // Log para depuración
+    loadStockDeposito(depositoId);
+  } else {
+    document.getElementById('stock-deposito-container').innerHTML = '';
+  }
+}
+
+// Cargar productos para sugerencias
+async function loadProductosSugeridos() {
+  if (!token || role !== 'Gerente') return;
+  try {
+    const response = await fetch('http://localhost:5000/api/stock/productos', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    const productos = await response.json();
+    console.log('Productos sugeridos:', productos); // Log para depuración
+    if (!Array.isArray(productos)) {
+      throw new Error('La respuesta del servidor no es un array');
+    }
+    const datalist = document.getElementById('productos-sugeridos');
+    datalist.innerHTML = '';
+    productos.sort((a, b) => a.localeCompare(b)).forEach(producto => {
+      const option = document.createElement('option');
+      option.value = producto;
+      datalist.appendChild(option);
+    });
+    document.getElementById('producto').addEventListener('input', () => {
+      const input = document.getElementById('producto').value.toLowerCase();
+      const filtered = productos
+        .filter(p => p.toLowerCase().includes(input))
+        .sort((a, b) => a.localeCompare(b));
+      datalist.innerHTML = '';
+      filtered.forEach(producto => {
+        const option = document.createElement('option');
+        option.value = producto;
+        datalist.appendChild(option);
+      });
+    });
+  } catch (err) {
+    console.error('Error al cargar productos:', err);
+    alert('Error al cargar productos');
+  }
+}
+
+// Cargar stock de un depósito
+async function loadStockDeposito(depositoId) {
+  try {
+    const response = await fetch(`http://localhost:5000/api/stock/deposito/${depositoId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar stock');
+    }
+    const stock = await response.json();
+    //console.log('Stock cargado para depósito', depositoId, ':', stock); // Log para depuración
+    const container = document.getElementById('stock-deposito-container');
+    if (!container) {
+      console.error('Contenedor stock-deposito-container no encontrado en el DOM');
+      alert('Error: Contenedor de stock no encontrado');
+      return;
+    }
+    container.innerHTML = `
+      <h3>Stock en Depósito</h3>
+      <label for="ordenar-stock">Ordenar por:</label>
+      <select id="ordenar-stock">
+        <option value="nombre">Nombre</option>
+        <option value="codigo">Código</option>
+      </select>
+      <div id="stock-items"></div>
+    `;
+    const stockItems = document.getElementById('stock-items');
+    if (!stock || !Array.isArray(stock) || stock.length === 0) {
+      stockItems.innerHTML = '<p>No hay stock disponible en este depósito.</p>';
+      console.warn('No se encontró stock para el depósito:', depositoId);
+    } else {
+      const renderStock = (stockData) => {
+        stockItems.innerHTML = '';
+        const ordenarPor = document.getElementById('ordenar-stock').value;
+        stockData
+          .filter(item => item.cantidad > 0)
+          .sort((a, b) => {
+            if (ordenarPor === 'nombre') return a.nombre.localeCompare(b.nombre);
+            return a.codigo.localeCompare(b.codigo);
+          })
+          .forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'stock-row';
+            row.innerHTML = `
+              <span>${item.nombre}</span>
+              <span>${item.codigo}</span>
+              <span>${item.cantidad}</span>
+            `;
+            stockItems.appendChild(row);
+          });
+      };
+      renderStock(stock);
+      const ordenarStockSelect = document.getElementById('ordenar-stock');
+      ordenarStockSelect.removeEventListener('change', () => renderStock(stock));
+      ordenarStockSelect.addEventListener('change', () => renderStock(stock));
+    }
+  } catch (err) {
+    console.error('Error al cargar stock:', err);
+    alert(`Error al cargar stock: ${err.message}`);
+    document.getElementById('stock-deposito-container').innerHTML = '<p>Error al cargar stock.</p>';
+  }
+}
+
+function renderStock(stock) {
+  const sortBy = document.getElementById('ordenar-stock')?.value || 'nombre';
+  const container = document.getElementById('stock-items');
+  container.innerHTML = '';
+  stock
+    .filter(item => item.cantidad > 0)
+    .sort((a, b) => sortBy === 'nombre' ? a.nombre.localeCompare(b.nombre) : a.codigo.localeCompare(b.codigo))
+    .forEach(item => {
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <p>${item.nombre} (Código: ${item.codigo}) - Cantidad: ${item.cantidad}</p>
+      `;
+      container.appendChild(div);
+    });
+}
+
+// Cargar proyectos para filtro
+async function loadProyectosForFilter() {
+  try {
+    const response = await fetch('http://localhost:5000/api/ordenes/proyectos', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const proyectos = await response.json();
+    const select = document.getElementById('filtro-proyecto');
+    select.innerHTML = '<option value="">Todos</option>';
+    proyectos.forEach(proyecto => {
+      const option = document.createElement('option');
+      option.value = proyecto;
+      option.text = proyecto;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error al cargar proyectos:', err);
+    alert('Error al cargar proyectos');
   }
 }
 
 // Cargar órdenes
 async function loadOrdenes() {
   try {
-    const response = await fetch('http://localhost:5000/api/ordenes', {
+    const estado = document.getElementById('filtro-estado')?.value || '';
+    const proyecto = document.getElementById('filtro-proyecto')?.value || '';
+    const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
+    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const ordenes = await response.json();
     const container = document.getElementById('ordenes-container');
     container.innerHTML = '';
-    ordenes.forEach(orden => {
-      const div = document.createElement('div');
-      div.className = 'orden';
-      let itemsList = orden.items.map(item => `
-        ${item.descripcion} - ${item.cantidad} ${item.unidad_medida} 
-        (Precio: $${item.precio_unitario.toFixed(2)}, Subtotal: $${item.subtotal.toFixed(2)})
-      `).join('<br>');
-      div.innerHTML = `
-        <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
-        <p>Ubicación: ${orden.ubicacion}</p>
-        <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
-        <p>Ítems:<br>${itemsList}</p>
-        <p>Total estimado: $${orden.total_estimado.toFixed(2)}</p>
-        <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
-        ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
-        ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
-        ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
-        ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
-        ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
-        ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
-        ${orden.factura ? `<p>Factura: ${orden.factura}</p>` : ''}
-        ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
-          <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
-        ` : ''}
-        ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
-          <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
-        ` : ''}
-        ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
-          <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
-        ` : ''}
-        ${role === 'Cotizador' || role === 'Gerente' ? `
-          <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
-        ` : ''}
-        ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
-          <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
-          <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
-          <button onclick="approveOrden('${orden._id}')">Aprobar</button>
-        ` : ''}
-        ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada' ) ? `
-          <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
-        ` : ''}
-      `;
-      container.appendChild(div);
-    });
+    ordenes
+      .filter(orden => showFinalizadas || orden.estado !== 'Completada')
+      .forEach(orden => {
+        const div = document.createElement('div');
+        div.className = 'orden';
+        let itemsList = orden.items.map(item => `
+          ${item.descripcion} - ${item.cantidad} ${item.unidad_medida} 
+          (Precio: $${item.precio_unitario?.toFixed(2) || '0.00'}, Subtotal: $${item.subtotal?.toFixed(2) || '0.00'})
+        `).join('<br>');
+        div.innerHTML = `
+          <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
+          <p>Ubicación: ${orden.ubicacion}</p>
+          <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
+          <p>Ítems:<br>${itemsList}</p>
+          <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
+          <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
+          ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
+          ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
+          ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
+          ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
+          ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
+            <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
+          ` : ''}
+          ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
+            <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
+          ` : ''}
+          ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
+            <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
+          ` : ''}
+          ${role === 'Cotizador' || role === 'Gerente' ? `
+            <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
+          ` : ''}
+          ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
+            <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
+            <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
+            <button onclick="approveOrden('${orden._id}')">Aprobar</button>
+          ` : ''}
+          ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
+            <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
+          ` : ''}
+        `;
+        container.appendChild(div);
+      });
   } catch (err) {
     console.error('Error al cargar órdenes:', err);
     alert('Error al cargar órdenes');
@@ -137,7 +311,7 @@ async function loadOrdenes() {
 
 // Añadir fila de ítem
 function addItemRow() {
-  const itemsContainer = document.getElementById('items');
+  const itemsContainer = document.getElementById('items-container');
   const row = document.createElement('div');
   row.className = 'item-row';
   row.innerHTML = `
@@ -154,6 +328,7 @@ function createOrden() {
   const proyecto = document.getElementById('proyecto').value;
   const ubicacion = document.getElementById('ubicacion').value;
   const deposito = document.getElementById('deposito').value;
+  const observaciones = document.getElementById('observaciones').value;
   const items = [];
   const itemRows = document.querySelectorAll('.item-row');
   itemRows.forEach(row => {
@@ -176,7 +351,7 @@ function createOrden() {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ proyecto, ubicacion, deposito, items })
+    body: JSON.stringify({ proyecto, ubicacion, deposito, observaciones, items })
   })
     .then(res => res.json())
     .then(data => {
@@ -202,69 +377,27 @@ async function editOrden(id) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const orden = await response.json();
-
+    currentOrdenId = id;
     document.getElementById('orden-id').value = orden._id;
     document.getElementById('proyecto').value = orden.proyecto;
     document.getElementById('ubicacion').value = orden.ubicacion;
-    document.getElementById('deposito').value = orden.deposito._id;
+    document.getElementById('deposito').value = orden.deposito?._id || '';
     document.getElementById('observaciones').value = orden.observaciones || '';
-
     const itemsContainer = document.getElementById('items-container');
     itemsContainer.innerHTML = '';
     orden.items.forEach(item => {
-      const itemDiv = document.createElement('div');
-      itemDiv.className = 'item';
-      itemDiv.innerHTML = `
-        <input type="text" class="descripcion" value="${item.descripcion}" placeholder="Descripción">
-        <input type="text" class="codigo" value="${item.codigo || ''}" placeholder="Código">
-        <input type="number" class="cantidad" value="${item.cantidad}" placeholder="Cantidad" min="1">
-        <input type="text" class="unidad_medida" value="${item.unidad_medida}" placeholder="Unidad">
-        <input type="number" class="precio_unitario" value="${item.precio_unitario}" placeholder="Precio Unitario" step="0.01">
-        <input type="number" class="subtotal" value="${item.subtotal}" placeholder="Subtotal" readonly>
-        <button onclick="removeItem(this)">Eliminar</button>
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <input type="text" class="item-descripcion" value="${item.descripcion}" placeholder="Descripción" required>
+        <input type="number" class="item-cantidad" value="${item.cantidad}" placeholder="Cantidad" required min="1">
+        <input type="text" class="item-unidad" value="${item.unidad_medida}" placeholder="Unidad" required>
+        <button onclick="this.parentElement.remove()">Eliminar</button>
       `;
-      itemsContainer.appendChild(itemDiv);
+      itemsContainer.appendChild(row);
     });
-
-    document.getElementById('orden-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const items = Array.from(document.querySelectorAll('.item')).map(item => ({
-        descripcion: item.querySelector('.descripcion').value,
-        codigo: item.querySelector('.codigo').value || undefined,
-        cantidad: parseInt(item.querySelector('.cantidad').value),
-        unidad_medida: item.querySelector('.unidad_medida').value,
-        precio_unitario: parseFloat(item.querySelector('.precio_unitario').value) || 0,
-        subtotal: parseFloat(item.querySelector('.subtotal').value) || 0
-      }));
-
-      try {
-        const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            proyecto: document.getElementById('proyecto').value,
-            ubicacion: document.getElementById('ubicacion').value,
-            deposito: document.getElementById('deposito').value,
-            observaciones: document.getElementById('observaciones').value,
-            items
-          })
-        });
-
-        if (response.ok) {
-          alert('Orden modificada exitosamente');
-          loadOrdenes();
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.error}`);
-        }
-      } catch (err) {
-        console.error('Error al modificar orden:', err);
-        alert('Error al modificar orden');
-      }
-    };
+    document.getElementById('create-orden').style.display = 'none';
+    document.getElementById('save-orden').style.display = 'inline';
   } catch (err) {
     console.error('Error al cargar orden:', err);
     alert('Error al cargar orden');
@@ -276,6 +409,7 @@ function saveOrden() {
   const proyecto = document.getElementById('proyecto').value;
   const ubicacion = document.getElementById('ubicacion').value;
   const deposito = document.getElementById('deposito').value;
+  const observaciones = document.getElementById('observaciones').value;
   const items = [];
   const itemRows = document.querySelectorAll('.item-row');
   itemRows.forEach(row => {
@@ -298,7 +432,7 @@ function saveOrden() {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ proyecto, ubicacion, deposito, items })
+    body: JSON.stringify({ proyecto, ubicacion, deposito, observaciones, items })
   })
     .then(res => res.json())
     .then(data => {
@@ -323,88 +457,63 @@ async function cotizarOrden(id) {
     const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar orden');
+    }
     const orden = await response.json();
-
-    const itemsContainer = document.getElementById('items-container');
-    itemsContainer.innerHTML = '';
-    orden.items.forEach(item => {
-      const itemDiv = document.createElement('div');
-      itemDiv.className = 'item';
-      itemDiv.innerHTML = `
-        <input type="text" class="descripcion" value="${item.descripcion}" readonly>
-        <input type="text" class="codigo" value="${item.codigo || ''}" readonly>
-        <input type="number" class="cantidad" value="${item.cantidad}" readonly>
-        <input type="text" class="unidad_medida" value="${item.unidad_medida}" readonly>
-        <input type="number" class="precio_unitario" value="${item.precio_unitario}" placeholder="Precio Unitario" step="0.01">
-        <input type="number" class="subtotal" value="${item.subtotal}" placeholder="Subtotal" readonly>
-      `;
-      itemsContainer.appendChild(itemDiv);
-    });
-
-    // Añadir campo para comentarios
-    const comentariosDiv = document.createElement('div');
-    comentariosDiv.innerHTML = `
-      <label for="comentarios-cotizacion">Comentarios de Cotización:</label>
-      <textarea id="comentarios-cotizacion" placeholder="Añade comentarios para el gerente"></textarea>
+    console.log('Orden cargada:', orden); // Log para depuración
+    currentOrdenId = id;
+    document.getElementById('cotizar-orden-details').innerHTML = `
+      <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
+      <p>Ubicación: ${orden.ubicacion}</p>
+      <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
     `;
-    itemsContainer.appendChild(comentariosDiv);
-
-    document.getElementById('orden-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const items = Array.from(document.querySelectorAll('.item')).map(item => ({
-        descripcion: item.querySelector('.descripcion').value,
-        codigo: item.querySelector('.codigo').value || undefined,
-        cantidad: parseInt(item.querySelector('.cantidad').value),
-        unidad_medida: item.querySelector('.unidad_medida').value,
-        precio_unitario: parseFloat(item.querySelector('.precio_unitario').value) || 0,
-        subtotal: parseFloat(item.querySelector('.subtotal').value) || 0
-      }));
-
-      try {
-        const response = await fetch(`http://localhost:5000/api/ordenes/cotizar/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            items,
-            comentarios_cotizacion: document.getElementById('comentarios-cotizacion').value
-          })
-        });
-
-        if (response.ok) {
-          alert('Orden cotizada exitosamente');
-          loadOrdenes();
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.error}`);
-        }
-      } catch (err) {
-        console.error('Error al cotizar orden:', err);
-        alert('Error al cotizar orden');
-      }
-    };
+    const itemsContainer = document.getElementById('items-container');
+    itemsContainer.innerHTML = ''; // Asegurar que el contenedor esté limpio
+    if (!orden.items || orden.items.length === 0) {
+      itemsContainer.innerHTML = '<p>No hay ítems en esta orden.</p>';
+      console.warn('No se encontraron ítems en la orden:', orden._id);
+    } else {
+      orden.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <input type="text" class="item-descripcion" value="${item.descripcion || ''}" readonly>
+          <input type="number" class="item-cantidad" value="${item.cantidad || 0}" readonly>
+          <input type="text" class="item-unidad" value="${item.unidad_medida || ''}" readonly>
+          <input type="number" class="item-precio" value="${item.precio_unitario || ''}" placeholder="Precio Unitario" step="0.01">
+        `;
+        itemsContainer.appendChild(row);
+      });
+    }
+    document.getElementById('comentarios-cotizacion').value = orden.comentarios_cotizacion || '';
   } catch (err) {
     console.error('Error al cargar orden:', err);
-    alert('Error al cargar orden');
+    alert(`Error al cargar orden: ${err.message}`);
   }
 }
 
 // Guardar cotización
 function saveCotizacion() {
   const items = [];
-  const itemRows = document.querySelectorAll('#cotizar-items .item-row');
-  itemRows.forEach(row => {
-    const precio = parseFloat(row.querySelector('.item-precio').value);
-    const index = parseInt(row.querySelector('.item-precio').dataset.index);
-    if (!isNaN(precio) && precio >= 0) {
-      items.push({ index, precio_unitario: precio });
+  const itemRows = document.querySelectorAll('#items-container .item-row');
+  let total_estimado = 0;
+  itemRows.forEach((row, index) => {
+    const descripcion = row.querySelector('.item-descripcion').value;
+    const cantidad = parseInt(row.querySelector('.item-cantidad').value);
+    const unidad_medida = row.querySelector('.item-unidad').value;
+    const precio_unitario = parseFloat(row.querySelector('.item-precio').value) || 0;
+    const subtotal = cantidad * precio_unitario;
+    total_estimado += subtotal;
+    if (descripcion && cantidad > 0 && unidad_medida) {
+      items.push({ descripcion, cantidad, unidad_medida, precio_unitario, subtotal });
     }
   });
+  const comentarios_cotizacion = document.getElementById('comentarios-cotizacion').value;
 
   if (items.length === 0) {
-    alert('Por favor, ingresa al menos un precio válido.');
+    alert('Por favor, ingresa al menos un ítem válido.');
     return;
   }
 
@@ -414,7 +523,7 @@ function saveCotizacion() {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ items })
+    body: JSON.stringify({ items, total_estimado, comentarios_cotizacion })
   })
     .then(res => res.json())
     .then(data => {
@@ -425,8 +534,8 @@ function saveCotizacion() {
       }
       alert('Orden cotizada exitosamente');
       document.getElementById('cotizar-orden-details').innerHTML = '';
-      document.getElementById('cotizar-items').innerHTML = '';
-      document.getElementById('save-cotizacion').style.display = 'none';
+      document.getElementById('items-container').innerHTML = '';
+      document.getElementById('comentarios-cotizacion').value = '';
       currentOrdenId = null;
       loadOrdenes();
     })
@@ -436,16 +545,32 @@ function saveCotizacion() {
     });
 }
 
-// Cargar factura
+// Añadir input para factura
+function addFacturaInput() {
+  const container = document.getElementById('facturas-container');
+  const input = document.createElement('div');
+  input.innerHTML = `
+    <input type="text" class="factura-input" placeholder="Número de Factura">
+    <button onclick="this.parentElement.remove()">Eliminar</button>
+  `;
+  container.appendChild(input);
+}
+
+// Cargar facturas
 function showFacturaForm(id) {
   currentOrdenId = id;
+  document.getElementById('facturas-container').innerHTML = `
+    <input type="text" class="factura-input" placeholder="Número de Factura">
+  `;
   document.getElementById('factura-form').style.display = 'block';
 }
 
-function uploadFactura() {
-  const factura = document.getElementById('factura').value;
-  if (!factura) {
-    alert('Por favor, ingresa un número de factura.');
+function uploadFacturas() {
+  const facturas = Array.from(document.querySelectorAll('.factura-input'))
+    .map(input => input.value)
+    .filter(value => value.trim() !== '');
+  if (facturas.length === 0) {
+    alert('Por favor, ingresa al menos un número de factura.');
     return;
   }
 
@@ -455,24 +580,26 @@ function uploadFactura() {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ factura })
+    body: JSON.stringify({ facturas })
   })
     .then(res => res.json())
     .then(data => {
       if (data.error) {
-        console.error('Error al cargar factura:', data.error);
+        console.error('Error al cargar facturas:', data.error);
         alert(data.error);
         return;
       }
-      alert('Factura cargada exitosamente');
-      document.getElementById('factura').value = '';
+      alert('Facturas cargadas exitosamente');
+      document.getElementById('facturas-container').innerHTML = `
+        <input type="text" class="factura-input" placeholder="Número de Factura">
+      `;
       document.getElementById('factura-form').style.display = 'none';
       currentOrdenId = null;
       loadOrdenes();
     })
     .catch(err => {
       console.error('Error:', err);
-      alert('Error al cargar factura');
+      alert('Error al cargar facturas');
     });
 }
 
@@ -534,8 +661,30 @@ function approveOrden(id) {
 }
 
 // Generar PDF de orden
-function generatePDF(id) {
-  window.open(`http://localhost:5000/api/reportes/orden/${id}?token=${token}`, '_blank');
+async function generatePDF(id) {
+  try {
+    const response = await fetch(`http://localhost:5000/api/reportes/orden/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al generar PDF');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orden_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Error al generar PDF:', err);
+    alert(`Error al generar PDF: ${err.message}`);
+  }
 }
 
 // Generar PDF de stock
@@ -593,6 +742,7 @@ async function loadDepositosForGestion() {
       div.className = 'deposito';
       div.innerHTML = `
         <p>${deposito.nombre} (${deposito.ubicacion})</p>
+        <button onclick="loadStockDeposito('${deposito._id}')">Ver Stock</button>
         <button onclick="deleteDeposito('${deposito._id}')">Eliminar</button>
       `;
       container.appendChild(div);
@@ -659,18 +809,28 @@ async function moveStock() {
     document.getElementById('origen-deposito').value = '';
     document.getElementById('destino-deposito').value = '';
     document.getElementById('cantidad').value = '';
+    document.getElementById('stock-deposito-container').innerHTML = '';
   } catch (err) {
     console.error('Error:', err);
     alert('Error al mover stock');
   }
 }
 
+// Mostrar/ocultar órdenes finalizadas
+function toggleFinalizadas() {
+  showFinalizadas = !showFinalizadas;
+  document.querySelector('#ordenes-controls button').textContent = showFinalizadas ? 'Ocultar Finalizadas' : 'Mostrar Finalizadas';
+  loadOrdenes();
+}
+
 // Reiniciar formulario
 function resetForm() {
+  document.getElementById('orden-id').value = '';
   document.getElementById('proyecto').value = '';
   document.getElementById('ubicacion').value = '';
   document.getElementById('deposito').value = '';
-  document.getElementById('items').innerHTML = `
+  document.getElementById('observaciones').value = '';
+  document.getElementById('items-container').innerHTML = `
     <div class="item-row">
       <input type="text" class="item-descripcion" placeholder="Descripción" required>
       <input type="number" class="item-cantidad" placeholder="Cantidad" required min="1">
@@ -682,7 +842,8 @@ function resetForm() {
   document.getElementById('save-orden').style.display = 'none';
   currentOrdenId = null;
 }
-// delete borrar orden
+
+// Eliminar orden
 async function deleteOrden(id) {
   if (!confirm('¿Estás seguro de que deseas eliminar esta orden?')) return;
 
@@ -702,5 +863,47 @@ async function deleteOrden(id) {
   } catch (err) {
     console.error('Error al eliminar orden:', err);
     alert('Error al eliminar orden');
+  }
+}
+
+// Cargar productos al iniciar la sección de mover stock (solo para Gerente después de login)
+
+
+// Cargar productos para sugerencias
+async function loadProductosSugeridos() {
+  if (!token || role !== 'Gerente') return; // Solo cargar si hay token y el usuario es Gerente
+  try {
+    const response = await fetch('http://localhost:5000/api/stock/productos', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    const productos = await response.json();
+    if (!Array.isArray(productos)) {
+      throw new Error('La respuesta del servidor no es un array');
+    }
+    const datalist = document.getElementById('productos-sugeridos');
+    datalist.innerHTML = '';
+    productos.sort((a, b) => a.localeCompare(b)).forEach(producto => {
+      const option = document.createElement('option');
+      option.value = producto;
+      datalist.appendChild(option);
+    });
+    document.getElementById('producto').addEventListener('input', () => {
+      const input = document.getElementById('producto').value.toLowerCase();
+      const filtered = productos
+        .filter(p => p.toLowerCase().includes(input))
+        .sort((a, b) => a.localeCompare(b));
+      datalist.innerHTML = '';
+      filtered.forEach(producto => {
+        const option = document.createElement('option');
+        option.value = producto;
+        datalist.appendChild(option);
+      });
+    });
+  } catch (err) {
+    console.error('Error al cargar productos:', err);
+    alert('Error al cargar productos');
   }
 }

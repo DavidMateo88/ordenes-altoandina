@@ -1,15 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { createOrden, cotizarOrden, rejectOrden, approveOrden, updateOrden, uploadFactura, getOrdenes, getOrdenById, deleteOrden } = require('../controllers/ordenes');
+const ordenController = require('../controllers/ordenes');
+const authMiddleware = require('../middleware/auth');
 
-router.post('/', createOrden);
-router.put('/cotizar/:id', cotizarOrden);
-router.put('/rechazar/:id', rejectOrden);
-router.put('/aprobar/:id', approveOrden);
-router.put('/:id', updateOrden);
-router.put('/factura/:id', uploadFactura);
-router.get('/', getOrdenes);
-router.get('/:id', getOrdenById);
-router.delete('/:id', deleteOrden); // Nueva ruta para eliminar órdenes
+router.post('/', authMiddleware, ordenController.createOrden);
+router.get('/', authMiddleware, ordenController.getOrdenes);
+router.get('/proyectos', authMiddleware, ordenController.getProyectos);
+router.get('/:id', authMiddleware, ordenController.getOrden);
+router.put('/:id', authMiddleware, ordenController.updateOrden);
+router.put('/cotizar/:id', authMiddleware, ordenController.cotizarOrden);
+router.put('/aprobar/:id', authMiddleware, ordenController.aprobarOrden);
+router.put('/rechazar/:id', authMiddleware, ordenController.rechazarOrden);
+router.put('/factura/:id', authMiddleware, ordenController.cargarFacturas);
+router.delete('/:id', authMiddleware, ordenController.deleteOrden);
 
 module.exports = router;

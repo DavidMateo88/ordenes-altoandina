@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getDepositos, createDeposito, deleteDeposito, moveStock } = require('../controllers/depositos');
+const depositoController = require('../controllers/depositos');
+const authMiddleware = require('../middleware/auth');
 
-router.get('/', getDepositos);
-router.post('/', createDeposito);
-router.delete('/:id', deleteDeposito);
-router.post('/mover-stock', moveStock);
+router.post('/', authMiddleware, depositoController.createDeposito);
+router.get('/', authMiddleware, depositoController.getDepositos);
+router.delete('/:id', authMiddleware, depositoController.deleteDeposito);
+router.post('/mover-stock', authMiddleware, depositoController.moverStock);
 
 module.exports = router;

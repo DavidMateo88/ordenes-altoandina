@@ -1,6 +1,4 @@
 require('dotenv').config();
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-console.log('PORT:', process.env.PORT);
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./models/database');
@@ -28,11 +26,6 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/depositos', depositosRoutes);
 
 // Ruta raíz
-app.get('/api', (req, res) => {
-  res.json({ message: 'API de Órdenes de Compra con MongoDB' });
-});
-
-// Servir frontend
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: 'public' });
 });

@@ -1,143 +1,151 @@
 const PDFDocument = require('pdfkit');
-const mongoose = require('mongoose');
 const Orden = require('../models/Orden');
 const Stock = require('../models/Stock');
-const jwt = require('jsonwebtoken');
 
-const generateOrdenPDF = async (req, res) => {
-  const token = req.query.token || req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token requerido' });
-
+exports.generateOrdenPDF = async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto');
-    if (decoded.role !== 'Gerente' && decoded.role !== 'Cotizador') {
-      return res.status(403).json({ error: 'Acceso denegado' });
-    }
-
-    const { id } = req.params;
-    const orden = await Orden.findById(id)
-      .populate('solicitante', 'username')
-      .populate('deposito', 'nombre ubicacion')
-      .populate('creado_por', 'username')
-      .populate('modificado_por', 'username')
-      .populate('cotizado_por', 'username')
-      .populate('aprobado_por', 'username')
-      .populate('rechazado_por', 'username');
-
-    if (!orden) return res.status(404).json({ error: 'Orden no encontrada' });
-
-    if (decoded.role === 'Cotizador' && 
-        orden.estado !== 'Pendiente' && 
-        orden.estado !== 'Modificada' && 
-        orden.estado !== 'Cotizada' && 
-        orden.estado !== 'Aprobada' && 
-        orden.cotizado_por?.toString() !== decoded.userId) {
-      return res.status(403).json({ error: 'No tienes permiso para generar este PDF' });
+    const orden = await Orden.findById(req.params.id)
+      .populate('deposito')
+      .populate('creado_por')
+      .populate('cotizado_por')
+      .populate('aprobado_por')
+      .populate('rechazado_por');
+    if (!orden) {
+      return res.status(404).json({ error: 'Orden no encontrada' });
     }
 
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=orden_${id}.pdf`);
-
+    res.setHeader('Content-Disposition', `attachment; filename=orden_${orden._id}.pdf`);
     doc.pipe(res);
+
+    // Título
     doc.fontSize(20).text('Orden de Compra', { align: 'center' });
-    doc.fontSize(12).text('[Nombre de la Empresa]', { align: 'center' });
     doc.moveDown();
 
-    doc.fontSize(14).text(`Orden #${orden._id}`, { align: 'left' });
+    // Información de la orden
     doc.fontSize(12);
-    doc.text(`Solicitante: ${orden.solicitante?.username || 'Desconocido'}`);
-    doc.text(`Creado por: ${orden.creado_por?.username || 'Desconocido'}`);
-    if (orden.modificado_por) doc.text(`Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})`);
-    if (orden.cotizado_por) doc.text(`Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}`);
-    if (orden.comentarios_cotizacion) doc.text(`Comentarios de Cotización: ${orden.comentarios_cotizacion}`);
-    if (orden.aprobado_por) doc.text(`Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}`);
-    if (orden.rechazado_por) doc.text(`Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}`);
-    doc.text(`Proyecto: ${orden.proyecto}`);
-    doc.text(`Ubicación: ${orden.ubicacion}`);
-    doc.text(`Depósito: ${orden.deposito?.nombre || 'Desconocido'} (${orden.deposito?.ubicacion || ''})`);
-    doc.text(`Fecha de emisión: ${orden.fecha_emision.toISOString().split('T')[0]}`);
-    if (orden.fecha_modificacion) doc.text(`Fecha de modificación: ${orden.fecha_modificacion.toISOString().split('T')[0]}`);
-    doc.text(`Estado: ${orden.estado}`);
-    doc.text(`Total estimado: $${orden.total_estimado.toFixed(2)}`);
-    if (orden.factura) doc.text(`Factura: ${orden.factura}`);
-    if (orden.observaciones) doc.text(`Observaciones: ${orden.observaciones}`);
-    if (orden.razon_rechazo) doc.text(`Razón del rechazo: ${orden.razon_rechazo}`);
+    doc.text(`Orden #${orden._id}`, { align: 'left' });
+    doc.text(`Proyecto: ${orden.proyecto}`, { align: 'left' });
+    doc.text(`Ubicación: ${orden.ubicacion}`, { align: 'left' });
+    doc.text(`Depósito: ${orden.deposito?.nombre || 'Desconocido'}`, { align: 'left' });
+    doc.text(`Estado: ${orden.estado}`, { align: 'left' });
+    doc.text(`Creado por: ${orden.creado_por?.username || 'Desconocido'}`, { align: 'left' });
+    if (orden.cotizado_por) doc.text(`Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}`, { align: 'left' });
+    if (orden.comentarios_cotizacion) doc.text(`Comentarios: ${orden.comentarios_cotizacion}`, { align: 'left' });
+    if (orden.aprobado_por) doc.text(`Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}`, { align: 'left' });
+    if (orden.rechazado_por) doc.text(`Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}`, { align: 'left' });
+    if (orden.razon_rechazo) doc.text(`Razón del rechazo: ${orden.razon_rechazo}`, { align: 'left' });
+    if (orden.facturas?.length) doc.text(`Facturas: ${orden.facturas.join(', ')}`, { align: 'left' });
     doc.moveDown();
 
-    doc.fontSize(14).text('Ítems', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10);
-    doc.text('Descripción', 50, doc.y, { continued: true });
-    doc.text('Código', 200, doc.y, { continued: true });
-    doc.text('Cantidad', 300, doc.y, { continued: true });
-    doc.text('Unidad', 350, doc.y, { continued: true });
-    doc.text('Precio Unitario', 400, doc.y, { continued: true });
-    doc.text('Subtotal', 480, doc.y);
-    doc.moveDown(0.5);
-    orden.items.forEach(item => {
-      doc.text(item.descripcion, 50, doc.y, { continued: true });
-      doc.text(item.codigo || '-', 200, doc.y, { continued: true });
-      doc.text(item.cantidad.toString(), 300, doc.y, { continued: true });
-      doc.text(item.unidad_medida, 350, doc.y, { continued: true });
-      doc.text(`$${item.precio_unitario.toFixed(2)}`, 400, doc.y, { continued: true });
-      doc.text(`$${item.subtotal.toFixed(2)}`, 480, doc.y);
-      doc.moveDown(0.5);
+    // Tabla de ítems
+    const tableTop = doc.y;
+    const tableLeft = 50;
+    const columnWidths = [200, 60, 80, 80, 100];
+    const headers = ['Descripción', 'Cantidad', 'Unidad', 'Precio Unit.', 'Subtotal'];
+
+    // Dibujar encabezados
+    doc.fontSize(10).font('Helvetica-Bold');
+    headers.forEach((header, i) => {
+      doc.text(header, tableLeft + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, {
+        width: columnWidths[i],
+        align: i === 0 ? 'left' : 'right'
+      });
     });
 
+    // Dibujar líneas horizontales y verticales
+    doc.moveTo(tableLeft, tableTop).lineTo(tableLeft + 520, tableTop).stroke();
+    doc.moveTo(tableLeft, tableTop + 20).lineTo(tableLeft + 520, tableTop + 20).stroke();
+    let x = tableLeft;
+    for (let i = 0; i <= columnWidths.length; i++) {
+      doc.moveTo(x, tableTop).lineTo(x, tableTop + 20).stroke();
+      x += columnWidths[i] || 0;
+    }
+
+    // Dibujar filas
+    doc.font('Helvetica').fontSize(10);
+    let y = tableTop + 20;
+    orden.items.forEach(item => {
+      doc.text(item.descripcion, tableLeft, y, { width: columnWidths[0], align: 'left' });
+      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0], y, { width: columnWidths[1], align: 'right' });
+      doc.text(item.unidad_medida, tableLeft + columnWidths[0] + columnWidths[1], y, { width: columnWidths[2], align: 'right' });
+      doc.text(`$${item.precio_unitario?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y, { width: columnWidths[3], align: 'right' });
+      doc.text(`$${item.subtotal?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3], y, { width: columnWidths[4], align: 'right' });
+      y += 20;
+      doc.moveTo(tableLeft, y).lineTo(tableLeft + 520, y).stroke();
+      x = tableLeft;
+      for (let i = 0; i <= columnWidths.length; i++) {
+        doc.moveTo(x, y - 20).lineTo(x, y).stroke();
+        x += columnWidths[i] || 0;
+      }
+    });
+
+    // Total estimado
+    doc.moveDown();
+    doc.font('Helvetica-Bold').text(`Total Estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}`, { align: 'right' });
+
     doc.end();
-  } catch (error) {
-    console.error('Error al generar PDF:', error.message);
+  } catch (err) {
     res.status(500).json({ error: 'Error al generar PDF' });
   }
 };
 
-const generateStockPDF = async (req, res) => {
-  const token = req.query.token || req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token requerido' });
-
+exports.generateStockPDF = async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto');
-    if (decoded.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
-
-    const stock = await Stock.find().populate('deposito', 'nombre ubicacion');
-
+    const stock = await Stock.find().populate('deposito');
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=stock_report_${new Date().toISOString().split('T')[0]}.pdf`);
-
+    res.setHeader('Content-Disposition', 'attachment; filename=stock_report.pdf');
     doc.pipe(res);
+
+    // Título
     doc.fontSize(20).text('Informe de Stock', { align: 'center' });
-    doc.fontSize(12).text('[Nombre de la Empresa]', { align: 'center' });
     doc.moveDown();
 
-    doc.fontSize(14).text(`Fecha: ${new Date().toISOString().split('T')[0]}`, { align: 'left' });
-    doc.moveDown();
+    // Tabla de stock
+    const tableTop = doc.y;
+    const tableLeft = 50;
+    const columnWidths = [200, 100, 100, 100];
+    const headers = ['Producto', 'Código', 'Cantidad', 'Depósito'];
 
-    doc.fontSize(14).text('Inventario', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10);
-    doc.text('Producto', 50, doc.y, { continued: true });
-    doc.text('Código', 200, doc.y, { continued: true });
-    doc.text('Depósito', 300, doc.y, { continued: true });
-    doc.text('Cantidad', 400, doc.y, { continued: true });
-    doc.text('Unidad', 450, doc.y);
-    doc.moveDown(0.5);
+    // Dibujar encabezados
+    doc.fontSize(10).font('Helvetica-Bold');
+    headers.forEach((header, i) => {
+      doc.text(header, tableLeft + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, {
+        width: columnWidths[i],
+        align: 'left'
+      });
+    });
 
+    // Dibujar líneas horizontales y verticales
+    doc.moveTo(tableLeft, tableTop).lineTo(tableLeft + 500, tableTop).stroke();
+    doc.moveTo(tableLeft, tableTop + 20).lineTo(tableLeft + 500, tableTop + 20).stroke();
+    let x = tableLeft;
+    for (let i = 0; i <= columnWidths.length; i++) {
+      doc.moveTo(x, tableTop).lineTo(x, tableTop + 20).stroke();
+      x += columnWidths[i] || 0;
+    }
+
+    // Dibujar filas
+    doc.font('Helvetica').fontSize(10);
+    let y = tableTop + 20;
     stock.forEach(item => {
-      doc.text(item.producto, 50, doc.y, { continued: true });
-      doc.text(item.codigo || '-', 200, doc.y, { continued: true });
-      doc.text(`${item.deposito.nombre} (${item.deposito.ubicacion})`, 300, doc.y, { continued: true });
-      doc.text(item.cantidad.toString(), 400, doc.y, { continued: true });
-      doc.text(item.unidad_medida, 450, doc.y);
-      doc.moveDown(0.5);
+      doc.text(item.nombre, tableLeft, y, { width: columnWidths[0], align: 'left' });
+      doc.text(item.codigo, tableLeft + columnWidths[0], y, { width: columnWidths[1], align: 'left' });
+      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0] + columnWidths[1], y, { width: columnWidths[2], align: 'left' });
+      doc.text(item.deposito?.nombre || 'Desconocido', tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y, { width: columnWidths[3], align: 'left' });
+      y += 20;
+      doc.moveTo(tableLeft, y).lineTo(tableLeft + 500, y).stroke();
+      x = tableLeft;
+      for (let i = 0; i <= columnWidths.length; i++) {
+        doc.moveTo(x, y - 20).lineTo(x, y).stroke();
+        x += columnWidths[i] || 0;
+      }
     });
 
     doc.end();
-  } catch (error) {
-    console.error('Error al generar PDF de stock:', error.message);
+  } catch (err) {
     res.status(500).json({ error: 'Error al generar PDF de stock' });
   }
 };
-
-module.exports = { generateOrdenPDF, generateStockPDF };

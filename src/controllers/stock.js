@@ -1,14 +1,21 @@
-const mongoose = require('mongoose');
 const Stock = require('../models/Stock');
 
-const getStock = async (req, res) => {
+exports.getProductos = async (req, res) => {
   try {
-    const stock = await Stock.find().populate('deposito', 'nombre ubicacion');
-    res.json(stock);
-  } catch (error) {
-    console.error('Error al obtener stock:', error.message);
-    res.status(500).json({ error: 'Error al obtener stock' });
+    const productos = await Stock.distinct('nombre');
+    res.json(productos);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener productos' });
   }
 };
 
-module.exports = { getStock };
+exports.getStockByDeposito = async (req, res) => {
+  try {
+    const stock = await Stock.find({ deposito: req.params.depositoId });
+    console.log('Stock enviado para depósito', req.params.depositoId, ':', stock); // Log para depuración
+    res.json(stock);
+  } catch (err) {
+    console.error('Error al obtener stock:', err);
+    res.status(500).json({ error: 'Error al obtener stock', details: err.message });
+  }
+};
