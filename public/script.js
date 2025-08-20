@@ -737,8 +737,30 @@ async function generatePDF(id) {
 }
 
 // Generar PDF de stock
-function generateStockPDF() {
-  window.open(`http://localhost:5000/api/reportes/stock?token=${token}`, '_blank');
+async function generateStockPDF() {
+  try {
+    const response = await fetch('http://localhost:5000/api/reportes/stock', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al generar PDF de stock');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'stock_report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Error al generar PDF de stock:', err);
+    alert(`Error al generar PDF de stock: ${err.message}`);
+  }
 }
 
 // Crear depósito

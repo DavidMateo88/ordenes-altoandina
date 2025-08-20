@@ -45,13 +45,16 @@ exports.generateOrdenPDF = async (req, res) => {
     const tableLeft = 50;
     const columnWidths = [200, 60, 80, 80, 100];
     const headers = ['Descripción', 'Cantidad', 'Unidad', 'Precio Unit.', 'Subtotal'];
+    const cellHeight = 20;
+    const fontSize = 10;
+    const verticalOffset = (cellHeight - fontSize) / 2; // 5 unidades
 
     // Dibujar encabezados
     doc.fontSize(10).font('Helvetica-Bold');
     headers.forEach((header, i) => {
       doc.text(header, tableLeft + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, {
         width: columnWidths[i],
-        align: i === 0 ? 'left' : 'right'
+        align: 'center'
       });
     });
 
@@ -60,24 +63,24 @@ exports.generateOrdenPDF = async (req, res) => {
     doc.moveTo(tableLeft, tableTop + 20).lineTo(tableLeft + 520, tableTop + 20).stroke();
     let x = tableLeft;
     for (let i = 0; i <= columnWidths.length; i++) {
-      doc.moveTo(x, tableTop).lineTo(x, tableTop + 20).stroke();
+      doc.moveTo(x, tableTop).lineTo(x, tableTop + cellHeight).stroke();
       x += columnWidths[i] || 0;
     }
 
     // Dibujar filas
-    doc.font('Helvetica').fontSize(10);
-    let y = tableTop + 20;
+   doc.font('Helvetica').fontSize(fontSize);
+    let y = tableTop + cellHeight;
     orden.items.forEach(item => {
-      doc.text(item.descripcion, tableLeft, y, { width: columnWidths[0], align: 'left' });
-      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0], y, { width: columnWidths[1], align: 'right' });
-      doc.text(item.unidad_medida, tableLeft + columnWidths[0] + columnWidths[1], y, { width: columnWidths[2], align: 'right' });
-      doc.text(`$${item.precio_unitario?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y, { width: columnWidths[3], align: 'right' });
-      doc.text(`$${item.subtotal?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3], y, { width: columnWidths[4], align: 'right' });
-      y += 20;
+      doc.text(item.descripcion, tableLeft, y + verticalOffset, { width: columnWidths[0], align: 'center' });
+      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0], y + verticalOffset, { width: columnWidths[1], align: 'center' });
+      doc.text(item.unidad_medida, tableLeft + columnWidths[0] + columnWidths[1], y + verticalOffset, { width: columnWidths[2], align: 'center' });
+      doc.text(`$${item.precio_unitario?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y + verticalOffset, { width: columnWidths[3], align: 'center' });
+      doc.text(`$${item.subtotal?.toFixed(2) || '0.00'}`, tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3], y + verticalOffset, { width: columnWidths[4], align: 'center' });
+      y += cellHeight;
       doc.moveTo(tableLeft, y).lineTo(tableLeft + 520, y).stroke();
       x = tableLeft;
       for (let i = 0; i <= columnWidths.length; i++) {
-        doc.moveTo(x, y - 20).lineTo(x, y).stroke();
+        doc.moveTo(x, y - cellHeight).lineTo(x, y).stroke();
         x += columnWidths[i] || 0;
       }
     });
@@ -88,7 +91,8 @@ exports.generateOrdenPDF = async (req, res) => {
 
     doc.end();
   } catch (err) {
-    res.status(500).json({ error: 'Error al generar PDF' });
+    console.error('Error al generar PDF:', err);
+    res.status(500).json({ error: 'Error al generar PDF', details: err.message });
   }
 };
 
@@ -97,7 +101,7 @@ exports.generateStockPDF = async (req, res) => {
     const stock = await Stock.find().populate('deposito');
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=stock_report.pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=stock_report.pdf`);
     doc.pipe(res);
 
     // Título
@@ -109,44 +113,53 @@ exports.generateStockPDF = async (req, res) => {
     const tableLeft = 50;
     const columnWidths = [200, 100, 100, 100];
     const headers = ['Producto', 'Código', 'Cantidad', 'Depósito'];
+    const cellHeight = 20;
+    const fontSize = 10;
+    const verticalOffset = (cellHeight - fontSize) / 2; // 5 unidades
 
     // Dibujar encabezados
-    doc.fontSize(10).font('Helvetica-Bold');
+    doc.fontSize(fontSize).font('Helvetica-Bold');
     headers.forEach((header, i) => {
-      doc.text(header, tableLeft + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, {
-        width: columnWidths[i],
-        align: 'left'
-      });
+      doc.text(
+        header,
+        tableLeft + columnWidths.slice(0, i).reduce((a, b) => a + b, 0),
+        tableTop + verticalOffset,
+        {
+          width: columnWidths[i],
+          align: 'center'
+        }
+      );
     });
 
-    // Dibujar líneas horizontales y verticales
+    // Dibujar líneas horizontales y verticales para encabezados
     doc.moveTo(tableLeft, tableTop).lineTo(tableLeft + 500, tableTop).stroke();
-    doc.moveTo(tableLeft, tableTop + 20).lineTo(tableLeft + 500, tableTop + 20).stroke();
+    doc.moveTo(tableLeft, tableTop + cellHeight).lineTo(tableLeft + 500, tableTop + cellHeight).stroke();
     let x = tableLeft;
     for (let i = 0; i <= columnWidths.length; i++) {
-      doc.moveTo(x, tableTop).lineTo(x, tableTop + 20).stroke();
+      doc.moveTo(x, tableTop).lineTo(x, tableTop + cellHeight).stroke();
       x += columnWidths[i] || 0;
     }
 
     // Dibujar filas
-    doc.font('Helvetica').fontSize(10);
-    let y = tableTop + 20;
+    doc.font('Helvetica').fontSize(fontSize);
+    let y = tableTop + cellHeight;
     stock.forEach(item => {
-      doc.text(item.nombre, tableLeft, y, { width: columnWidths[0], align: 'left' });
-      doc.text(item.codigo, tableLeft + columnWidths[0], y, { width: columnWidths[1], align: 'left' });
-      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0] + columnWidths[1], y, { width: columnWidths[2], align: 'left' });
-      doc.text(item.deposito?.nombre || 'Desconocido', tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y, { width: columnWidths[3], align: 'left' });
-      y += 20;
+      doc.text(item.nombre, tableLeft, y + verticalOffset, { width: columnWidths[0], align: 'center' });
+      doc.text(item.codigo, tableLeft + columnWidths[0], y + verticalOffset, { width: columnWidths[1], align: 'center' });
+      doc.text(item.cantidad.toString(), tableLeft + columnWidths[0] + columnWidths[1], y + verticalOffset, { width: columnWidths[2], align: 'center' });
+      doc.text(item.deposito?.nombre || 'Desconocido', tableLeft + columnWidths[0] + columnWidths[1] + columnWidths[2], y + verticalOffset, { width: columnWidths[3], align: 'center' });
+      y += cellHeight;
       doc.moveTo(tableLeft, y).lineTo(tableLeft + 500, y).stroke();
       x = tableLeft;
       for (let i = 0; i <= columnWidths.length; i++) {
-        doc.moveTo(x, y - 20).lineTo(x, y).stroke();
+        doc.moveTo(x, y - cellHeight).lineTo(x, y).stroke();
         x += columnWidths[i] || 0;
       }
     });
 
     doc.end();
   } catch (err) {
-    res.status(500).json({ error: 'Error al generar PDF de stock' });
+    console.error('Error al generar PDF de stock:', err);
+    res.status(500).json({ error: 'Error al generar PDF de stock', details: err.message });
   }
 };
