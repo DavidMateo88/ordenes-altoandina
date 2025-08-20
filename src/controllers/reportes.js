@@ -21,6 +21,7 @@ exports.generateOrdenPDF = async (req, res) => {
 
     // Título
     doc.fontSize(20).text('Orden de Compra', { align: 'center' });
+    doc.fontSize(20).text('Alto Andina SRL', { align: 'center' });
     doc.moveDown();
 
     // Información de la orden

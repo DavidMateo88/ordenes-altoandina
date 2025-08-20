@@ -29,6 +29,7 @@
       <div id="items-container">
         <div class="item-row">
           <input type="text" class="item-descripcion" placeholder="Descripción" required>
+          <input type="text" class="item-codigo" placeholder="codigo (opcional)" required>
           <input type="number" class="item-cantidad" placeholder="Cantidad" required min="1">
           <input type="text" class="item-unidad" placeholder="Unidad" required>
           <button onclick="this.parentElement.remove()">Eliminar</button>
@@ -39,14 +40,13 @@
       <button id="save-orden" onclick="saveOrden()" style="display: none;">Guardar Cambios</button>
     </div>
     <!-- Formulario para cotizar órdenes (Cotizador) -->
+<!-- Formulario para cotizar órdenes (Cotizador) -->
 <div id="cotizar-form" style="display: none;">
   <h2>Cotizar Orden</h2>
   <div id="cotizar-orden-details"></div>
-<form id="orden-form">
-    <div id="items-container"></div>
-    <textarea id="comentarios-cotizacion" placeholder="Comentarios de Cotización (opcional)"></textarea>
-    <button type="submit">Guardar Cotización</button>
-  </form>
+  <div id="cotizar-items-container"></div>
+  <button onclick="saveCotizacion()">Guardar Cotización</button>
+</div>
 
       <!-- Cargar factura -->
       <div id="factura-form" style="display: none;">

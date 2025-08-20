@@ -1,4 +1,6 @@
 const Orden = require('../models/Orden');
+const Stock = require('../models/Stock'); // Añadir importación
+
 
 exports.createOrden = async (req, res) => {
   if (req.user.role !== 'Solicitante') {
@@ -153,9 +155,12 @@ exports.cargarFacturas = async (req, res) => {
   if (req.user.role !== 'Cotizador') {
     return res.status(403).json({ error: 'Acceso denegado' });
   }
-  const { facturas } = req.body;
+  const { facturas, items } = req.body;
   if (!facturas || !Array.isArray(facturas) || facturas.length === 0) {
     return res.status(400).json({ error: 'Debe proporcionar al menos un número de factura' });
+  }
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Debe proporcionar ítems válidos' });
   }
   try {
     const orden = await Orden.findById(req.params.id);
@@ -165,12 +170,54 @@ exports.cargarFacturas = async (req, res) => {
     if (orden.estado !== 'Aprobada') {
       return res.status(400).json({ error: 'La orden debe estar aprobada para cargar facturas' });
     }
+
+    // Actualizar la orden
     orden.facturas = facturas;
     orden.estado = 'Completada';
+    orden.fecha_modificacion = Date.now();
+    orden.modificado_por = req.user.id;
     await orden.save();
-    res.json(orden);
+
+    // Actualizar el stock
+    for (const item of items) {
+      if (!item.cantidad || item.cantidad <= 0) {
+        console.warn(`Ítem inválido en orden ${orden._id}:`, item);
+        continue;
+      }
+
+      // Generar código por defecto si no existe
+      const codigo = item.codigo || `COD_${item.descripcion.replace(/\s+/g, '_').toUpperCase()}_${orden._id.toString().slice(-4)}`;
+
+      console.log(`Procesando ítem:`, { nombre: item.descripcion, codigo, cantidad: item.cantidad, deposito: orden.deposito });
+
+      const stock = await Stock.findOne({
+        codigo: codigo,
+        deposito: orden.deposito
+      });
+
+      if (stock) {
+        // Actualizar stock existente
+        stock.cantidad += item.cantidad;
+        stock.nombre = item.descripcion;
+        await stock.save();
+        console.log(`Stock actualizado:`, { codigo, cantidad: stock.cantidad });
+      } else {
+        // Crear nuevo documento en Stock
+        const newStock = await Stock.create({
+          nombre: item.descripcion,
+          codigo: codigo,
+          cantidad: item.cantidad,
+          deposito: orden.deposito
+        });
+        console.log(`Stock creado:`, newStock);
+      }
+    }
+
+    console.log(`Stock actualizado para orden ${orden._id}`);
+    res.json({ message: 'Facturas cargadas y stock actualizado', orden });
   } catch (err) {
-    res.status(500).json({ error: 'Error al cargar facturas' });
+    console.error('Error al cargar facturas:', err);
+    res.status(500).json({ error: 'Error al cargar facturas', details: err.message });
   }
 };
 
