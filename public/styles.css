@@ -18,7 +18,7 @@ h1, h2, h3 {
 #login-form, #orden-form, #cotizar-form, #move-stock, #gestion-depositos, #stock-report, #ordenes-controls {
   margin-bottom: 20px;
   padding: 20px;
-  border: 1px solid #000000;
+  border: 1px flex #000000;
   border-radius: 5px;
   background: rgba(242, 244, 247, 0.30);
 }
