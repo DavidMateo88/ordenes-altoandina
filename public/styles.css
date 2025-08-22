@@ -4,7 +4,7 @@ body {
 }
 
 body {
-  background-image: linear-gradient(rgba(5, 7, 12, 0.75), rgba(5, 7, 12, 0.75)),
+  background-image: linear-gradient(rgba(5, 7, 12, 0.50), rgba(5, 7, 12, 0.50)),
    url("https://altoandina.com.ar/wp-content/uploads/2019/04/AltoAndina-1.jpg"); /* Reemplaza esta URL por la tuya */
   background-size: cover;
   background-repeat: no-repeat;
