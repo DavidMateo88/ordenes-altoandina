@@ -267,40 +267,41 @@ async function loadOrdenes() {
           (Precio: $${item.precio_unitario?.toFixed(2) || '0.00'}, Subtotal: $${item.subtotal?.toFixed(2) || '0.00'})
         `).join('<br>');
         div.innerHTML = `
-          <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
-          <p>Ubicación: ${orden.ubicacion}</p>
-          <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
-          <p>Ítems:<br>${itemsList}</p>
-          <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
-          <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
-          ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
-          ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
-          ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
-          ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
-          ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
-            <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
-          ` : ''}
-          ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
-            <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
-          ` : ''}
-          ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
-            <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
-          ` : ''}
-          ${role === 'Cotizador' || role === 'Gerente' ? `
-            <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
-          ` : ''}
-          ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
-            <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
-            <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
-            <button onclick="approveOrden('${orden._id}')">Aprobar</button>
-          ` : ''}
-          ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
-            <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
-          ` : ''}
-        `;
+  <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
+  <p>Ubicación: ${orden.ubicacion}</p>
+  <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
+  <p>Ítems:<br>${itemsList}</p>
+  <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
+  <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
+  ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
+  ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
+  ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
+  ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
+  ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
+  ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
+  ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
+  ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
+    <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
+  ` : ''}
+  ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
+    <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
+  ` : ''}
+  ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
+    <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
+  ` : ''}
+  ${role === 'Cotizador' || role === 'Gerente' ? `
+    <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
+    <button onclick="generateExcel('${orden._id}')">Generar Excel</button>
+  ` : ''}
+  ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
+    <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
+    <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
+    <button onclick="approveOrden('${orden._id}')">Aprobar</button>
+  ` : ''}
+  ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
+    <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
+  ` : ''}
+`;
         container.appendChild(div);
       });
   } catch (err) {
@@ -735,7 +736,112 @@ async function generatePDF(id) {
     alert(`Error al generar PDF: ${err.message}`);
   }
 }
+// Generar excel de orden
+async function generateExcel(id) {
+  try {
+    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar orden');
+    }
+    const orden = await response.json();
 
+    // Preparar datos para Excel
+    const data = [
+      ['Orden de Compra'],
+      ['ID', orden._id],
+      ['Proyecto', orden.proyecto],
+      ['Ubicación', orden.ubicacion],
+      ['Depósito', orden.deposito?.nombre || 'Desconocido'],
+      ['Estado', orden.estado],
+      ['Total Estimado', `$${orden.total_estimado?.toFixed(2) || '0.00'}`],
+      ['Creado por', orden.creado_por?.username || 'Desconocido'],
+      orden.modificado_por ? ['Modificado por', `${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})`] : [],
+      orden.cotizado_por ? ['Cotizado por', orden.cotizado_por?.username || 'Desconocido'] : [],
+      orden.comentarios_cotizacion ? ['Comentarios de Cotización', orden.comentarios_cotizacion] : [],
+      orden.aprobado_por ? ['Aprobado por', orden.aprobado_por?.username || 'Desconocido'] : [],
+      orden.rechazado_por ? ['Rechazado por', orden.rechazado_por?.username || 'Desconocido'] : [],
+      orden.razon_rechazo ? ['Razón del Rechazo', orden.razon_rechazo] : [],
+      orden.facturas?.length ? ['Facturas', orden.facturas.join(', ')] : [],
+      [], // Línea en blanco
+      ['Ítems'],
+      ['Descripción', 'Código', 'Cantidad', 'Unidad', 'Precio Unitario', 'Subtotal']
+    ];
+
+    // Agregar ítems
+    orden.items.forEach(item => {
+      data.push([
+        item.descripcion,
+        item.codigo || '',
+        item.cantidad,
+        item.unidad_medida,
+        `$${item.precio_unitario?.toFixed(2) || '0.00'}`,
+        `$${item.subtotal?.toFixed(2) || '0.00'}`
+      ]);
+    });
+
+    // Crear hoja de Excel
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Orden');
+    XLSX.writeFile(wb, `orden_${id}.xlsx`);
+  } catch (err) {
+    console.error('Error al generar Excel:', err);
+    alert(`Error al generar Excel: ${err.message}`);
+  }
+}
+//generar excel de todas las ordenes
+async function generateAllOrdersExcel() {
+  try {
+    const estado = document.getElementById('filtro-estado')?.value || '';
+    const proyecto = document.getElementById('filtro-proyecto')?.value || '';
+    const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
+    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar órdenes');
+    }
+    const ordenes = await response.json();
+
+    // Preparar datos para Excel
+    const data = [
+      ['Reporte de Órdenes de Compra'],
+      ['ID', 'Proyecto', 'Ubicación', 'Depósito', 'Estado', 'Total Estimado', 'Creado por', 'Ítems', 'Facturas']
+    ];
+
+    ordenes
+      .filter(orden => showFinalizadas || orden.estado !== 'Completada')
+      .forEach(orden => {
+        const itemsList = orden.items.map(item => 
+          `${item.descripcion} (${item.cantidad} ${item.unidad_medida}, $${item.subtotal?.toFixed(2) || '0.00'})`
+        ).join('; ');
+        data.push([
+          orden._id,
+          orden.proyecto,
+          orden.ubicacion,
+          orden.deposito?.nombre || 'Desconocido',
+          orden.estado,
+          `$${orden.total_estimado?.toFixed(2) || '0.00'}`,
+          orden.creado_por?.username || 'Desconocido',
+          itemsList,
+          orden.facturas?.join(', ') || ''
+        ]);
+      });
+
+    // Crear hoja de Excel
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Órdenes');
+    XLSX.writeFile(wb, 'ordenes_compras.xlsx');
+  } catch (err) {
+    console.error('Error al generar Excel de órdenes:', err);
+    alert(`Error al generar Excel: ${err.message}`);
+  }
+}
 // Generar PDF de stock
 async function generateStockPDF() {
   try {
