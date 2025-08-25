@@ -47,6 +47,41 @@
   <div id="cotizar-items-container"></div>
   <button onclick="saveCotizacion()">Guardar Cotización</button>
 </div>
+<!-- Lista de ítems para Cotizador -->
+<div id="items-list" style="display: none;">
+  <h2>Lista de Ítems en Órdenes No Finalizadas</h2>
+  <div id="items-controls">
+    <label for="filtro-proyecto-items">Filtrar por proyecto:</label>
+    <select id="filtro-proyecto-items">
+      <option value="">Todos</option>
+    </select>
+    <label for="filtro-cotizados">Mostrar ítems cotizados:</label>
+    <input type="checkbox" id="filtro-cotizados" checked>
+    <label for="ordenar-items">Ordenar por:</label>
+    <select id="ordenar-items">
+      <option value="default">Orden por defecto</option>
+      <option value="descripcion">Descripción (A-Z)</option>
+      <option value="descripcion-desc">Descripción (Z-A)</option>
+    </select>
+    <button onclick="generateItemsExcel()">Exportar a Excel</button>
+    <button onclick="generateItemsPDF()">Exportar a PDF</button>
+  </div>
+  <table id="items-table">
+    <thead>
+      <tr>
+        <th>Descripción</th>
+        <th>Código</th>
+        <th>Cantidad</th>
+        <th>Unidad</th>
+        <th>Proyecto</th>
+        <th>Solicitante</th>
+        <th>Cotizador</th>
+        <th>Precio Unitario</th>
+      </tr>
+    </thead>
+    <tbody id="items-table-body"></tbody>
+  </table>
+</div>
 
       <!-- Cargar factura -->
       <div id="factura-form" style="display: none;">
@@ -113,6 +148,7 @@
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

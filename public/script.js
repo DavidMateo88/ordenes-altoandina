@@ -18,7 +18,7 @@ async function login() {
   }
 
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/auth/login', {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -37,8 +37,11 @@ async function login() {
       loadDepositos();
       loadOrdenes();
     } else if (role === 'Cotizador') {
-      document.getElementById('cotizar-form').style.display = 'block';
-      loadOrdenes();
+  document.getElementById('cotizar-form').style.display = 'block';
+  document.getElementById('items-list').style.display = 'block';
+  loadOrdenes();
+  loadItemsForCotizador();
+  loadProyectosForFilter(); // Cargar proyectos para el filtro
     } else if (role === 'Gerente') {
       document.getElementById('ordenes-controls').style.display = 'block';
       document.getElementById('move-stock').style.display = 'block';
@@ -62,7 +65,7 @@ async function login() {
 // Cargar depósitos
 async function loadDepositos() {
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -108,7 +111,7 @@ function handleDepositoChange() {
 async function loadProductosSugeridos() {
   if (!token || role !== 'Gerente') return;
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/stock/productos', {
+    const response = await fetch('http://localhost:5000/api/stock/productos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -147,7 +150,7 @@ async function loadProductosSugeridos() {
 // Cargar stock de un depósito
 async function loadStockDeposito(depositoId) {
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/stock/deposito/${depositoId}`, {
+    const response = await fetch(`http://localhost:5000/api/stock/deposito/${depositoId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -227,17 +230,24 @@ function renderStock(stock) {
 // Cargar proyectos para filtro
 async function loadProyectosForFilter() {
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/ordenes/proyectos', {
+    const response = await fetch('http://localhost:5000/api/ordenes/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const proyectos = await response.json();
     const select = document.getElementById('filtro-proyecto');
+    const selectItems = document.getElementById('filtro-proyecto-items');
     select.innerHTML = '<option value="">Todos</option>';
+    if (selectItems) {
+      selectItems.innerHTML = '<option value="">Todos</option>';
+    }
     proyectos.forEach(proyecto => {
       const option = document.createElement('option');
       option.value = proyecto;
       option.text = proyecto;
       select.appendChild(option);
+      if (selectItems) {
+        selectItems.appendChild(option.cloneNode(true));
+      }
     });
   } catch (err) {
     console.error('Error al cargar proyectos:', err);
@@ -251,7 +261,7 @@ async function loadOrdenes() {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const ordenes = await response.json();
@@ -304,9 +314,101 @@ async function loadOrdenes() {
 `;
         container.appendChild(div);
       });
+    if (role === 'Cotizador') {
+      loadItemsForCotizador();
+    }
   } catch (err) {
     console.error('Error al cargar órdenes:', err);
     alert('Error al cargar órdenes');
+  }
+}
+//LISTA COTIZADOR
+async function loadItemsForCotizador() {
+  try {
+    const response = await fetch('https://gestion-altoandina.onrender.com/api/ordenes?estado=', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar órdenes');
+    }
+    const ordenes = await response.json();
+    
+    // Filtrar órdenes no finalizadas ni completadas
+    const filteredOrdenes = ordenes.filter(orden => 
+      ['Pendiente', 'Cotizada', 'Modificada', 'Aprobada'].includes(orden.estado)
+    );
+    
+    // Extraer ítems
+    const items = [];
+    filteredOrdenes.forEach(orden => {
+      orden.items.forEach(item => {
+        items.push({
+          descripcion: item.descripcion,
+          codigo: item.codigo || 'N/A',
+          cantidad: item.cantidad,
+          unidad_medida: item.unidad_medida,
+          proyecto: orden.proyecto,
+          solicitante: orden.creado_por?.username || 'Desconocido',
+          cotizador: orden.cotizado_por?.username || 'No cotizado',
+          precio_unitario: item.precio_unitario ? `$${item.precio_unitario.toFixed(2)}` : 'No cotizado'
+        });
+      });
+    });
+    
+    // Aplicar filtros
+    const filtroProyecto = document.getElementById('filtro-proyecto-items')?.value || '';
+    const mostrarCotizados = document.getElementById('filtro-cotizados')?.checked;
+    const ordenarPor = document.getElementById('ordenar-items')?.value || 'default';
+    
+    let filteredItems = items;
+    if (filtroProyecto) {
+      filteredItems = filteredItems.filter(item => item.proyecto === filtroProyecto);
+    }
+    if (!mostrarCotizados) {
+      filteredItems = filteredItems.filter(item => item.precio_unitario === 'No cotizado');
+    }
+    if (ordenarPor === 'descripcion') {
+      filteredItems.sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+    } else if (ordenarPor === 'descripcion-desc') {
+      filteredItems.sort((a, b) => b.descripcion.localeCompare(a.descripcion));
+    }
+    
+    // Renderizar ítems en la tabla
+    const tableBody = document.getElementById('items-table-body');
+    tableBody.innerHTML = '';
+    if (filteredItems.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="8">No hay ítems que coincidan con los filtros.</td></tr>';
+      return;
+    }
+    filteredItems.forEach(item => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.descripcion}</td>
+        <td>${item.codigo}</td>
+        <td>${item.cantidad}</td>
+        <td>${item.unidad_medida}</td>
+        <td>${item.proyecto}</td>
+        <td>${item.solicitante}</td>
+        <td>${item.cotizador}</td>
+        <td>${item.precio_unitario}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+    
+    // Agregar eventos a los filtros
+    const proyectoSelect = document.getElementById('filtro-proyecto-items');
+    const cotizadosCheckbox = document.getElementById('filtro-cotizados');
+    const ordenarSelect = document.getElementById('ordenar-items');
+    [proyectoSelect, cotizadosCheckbox, ordenarSelect].forEach(element => {
+      if (element) {
+        element.removeEventListener('change', loadItemsForCotizador);
+        element.addEventListener('change', loadItemsForCotizador);
+      }
+    });
+  } catch (err) {
+    console.error('Error al cargar ítems para cotizador:', err);
+    alert(`Error al cargar ítems: ${err.message}`);
   }
 }
 
@@ -356,7 +458,7 @@ function createOrden() {
     return;
   }
 
-  fetch('https://gestion-altoandina.onrender.com/api/ordenes', {
+  fetch('http://localhost:5000/api/ordenes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -384,7 +486,7 @@ function createOrden() {
 // Editar orden
 async function editOrden(id) {
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const orden = await response.json();
@@ -447,7 +549,7 @@ function saveOrden() {
     return;
   }
 
-  fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
+  fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -476,7 +578,7 @@ function saveOrden() {
 async function cotizarOrden(id) {
   document.getElementById('cotizar-form').style.display = 'block';
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -552,7 +654,7 @@ function saveCotizacion() {
     return;
   }
 
-  fetch(`https://gestion-altoandina.onrender.com/api/ordenes/cotizar/${currentOrdenId}`, {
+  fetch(`http://localhost:5000/api/ordenes/cotizar/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -569,6 +671,10 @@ function saveCotizacion() {
       }
       alert('Cotización guardada exitosamente');
       document.getElementById('cotizar-form').style.display = 'none';
+      // Al final de saveCotizacion, antes de loadOrdenes()
+if (role === 'Cotizador') {
+  loadItemsForCotizador();
+}
       loadOrdenes();
     })
     .catch(err => {
@@ -608,7 +714,7 @@ async function uploadFacturas() {
 
   try {
     // Obtener la orden para enviar sus ítems
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -621,7 +727,7 @@ async function uploadFacturas() {
     console.log('Ítems enviados:', items); // Log adicional
 
     // Enviar facturas e ítems al backend
-    const updateResponse = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/factura/${currentOrdenId}`, {
+    const updateResponse = await fetch(`http://localhost:5000/api/ordenes/factura/${currentOrdenId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -641,6 +747,10 @@ async function uploadFacturas() {
     `;
     document.getElementById('factura-form').style.display = 'none';
     currentOrdenId = null;
+    // Al final de uploadFacturas, antes de loadOrdenes()
+if (role === 'Cotizador') {
+  loadItemsForCotizador();
+}
     loadOrdenes();
     // Recargar el stock para reflejar los cambios
     const depositoId = orden.deposito?._id;
@@ -661,7 +771,7 @@ function rejectOrden(id) {
     return;
   }
 
-  fetch(`https://gestion-altoandina.onrender.com/api/ordenes/rechazar/${id}`, {
+  fetch(`http://localhost:5000/api/ordenes/rechazar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -687,7 +797,7 @@ function rejectOrden(id) {
 
 // Aprobar orden
 function approveOrden(id) {
-  fetch(`https://gestion-altoandina.onrender.com/api/ordenes/aprobar/${id}`, {
+  fetch(`http://localhost:5000/api/ordenes/aprobar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -713,7 +823,7 @@ function approveOrden(id) {
 // Generar PDF de orden
 async function generatePDF(id) {
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/reportes/orden/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/reportes/orden/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -736,10 +846,10 @@ async function generatePDF(id) {
     alert(`Error al generar PDF: ${err.message}`);
   }
 }
-// Generar excel de orden
+
 async function generateExcel(id) {
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -792,13 +902,13 @@ async function generateExcel(id) {
     alert(`Error al generar Excel: ${err.message}`);
   }
 }
-//generar excel de todas las ordenes
+
 async function generateAllOrdersExcel() {
   try {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -845,7 +955,7 @@ async function generateAllOrdersExcel() {
 // Generar PDF de stock
 async function generateStockPDF() {
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/reportes/stock', {
+    const response = await fetch('http://localhost:5000/api/reportes/stock', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -880,7 +990,7 @@ async function createDeposito() {
   }
 
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -908,7 +1018,7 @@ async function createDeposito() {
 // Cargar depósitos para gestión
 async function loadDepositosForGestion() {
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const depositos = await response.json();
@@ -933,7 +1043,7 @@ async function loadDepositosForGestion() {
 // Eliminar depósito
 function deleteDeposito(id) {
   if (!confirm('¿Estás seguro de eliminar este depósito?')) return;
-  fetch(`https://gestion-altoandina.onrender.com/api/depositos/${id}`, {
+  fetch(`http://localhost:5000/api/depositos/${id}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   })
@@ -967,7 +1077,7 @@ async function moveStock() {
   }
 
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/depositos/mover-stock', {
+    const response = await fetch('http://localhost:5000/api/depositos/mover-stock', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1026,7 +1136,7 @@ async function deleteOrden(id) {
   if (!confirm('¿Estás seguro de que deseas eliminar esta orden?')) return;
 
   try {
-    const response = await fetch(`https://gestion-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -1051,7 +1161,7 @@ async function deleteOrden(id) {
 async function loadProductosSugeridos() {
   if (!token || role !== 'Gerente') return; // Solo cargar si hay token y el usuario es Gerente
   try {
-    const response = await fetch('https://gestion-altoandina.onrender.com/api/stock/productos', {
+    const response = await fetch('http://localhost:5000/api/stock/productos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1083,6 +1193,164 @@ async function loadProductosSugeridos() {
   } catch (err) {
     console.error('Error al cargar productos:', err);
     alert('Error al cargar productos');
+  }
+}
+//FUNCION EXCEL TBLA ITEMS
+async function generateItemsExcel() {
+  try {
+    const response = await fetch('https://gestion-altoandina.onrender.com/api/ordenes?estado=', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar órdenes');
+    }
+    const ordenes = await response.json();
+    const filteredOrdenes = ordenes.filter(orden => 
+      ['Pendiente', 'Cotizada', 'Modificada', 'Aprobada'].includes(orden.estado)
+    );
+    
+    const items = [];
+    filteredOrdenes.forEach(orden => {
+      orden.items.forEach(item => {
+        items.push({
+          descripcion: item.descripcion,
+          codigo: item.codigo || 'N/A',
+          cantidad: item.cantidad,
+          unidad_medida: item.unidad_medida,
+          proyecto: orden.proyecto,
+          solicitante: orden.creado_por?.username || 'Desconocido',
+          cotizador: orden.cotizado_por?.username || 'No cotizado',
+          precio_unitario: item.precio_unitario ? `$${item.precio_unitario.toFixed(2)}` : 'No cotizado'
+        });
+      });
+    });
+    
+    // Aplicar filtros
+    const filtroProyecto = document.getElementById('filtro-proyecto-items')?.value || '';
+    const mostrarCotizados = document.getElementById('filtro-cotizados')?.checked;
+    const ordenarPor = document.getElementById('ordenar-items')?.value || 'default';
+    
+    let filteredItems = items;
+    if (filtroProyecto) {
+      filteredItems = filteredItems.filter(item => item.proyecto === filtroProyecto);
+    }
+    if (!mostrarCotizados) {
+      filteredItems = filteredItems.filter(item => item.precio_unitario === 'No cotizado');
+    }
+    if (ordenarPor === 'descripcion') {
+      filteredItems.sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+    } else if (ordenarPor === 'descripcion-desc') {
+      filteredItems.sort((a, b) => b.descripcion.localeCompare(a.descripcion));
+    }
+    
+    // Preparar datos para Excel
+    const data = [
+      ['Lista de Ítems en Órdenes No Finalizadas'],
+      ['Descripción', 'Código', 'Cantidad', 'Unidad', 'Proyecto', 'Solicitante', 'Cotizador', 'Precio Unitario']
+    ];
+    filteredItems.forEach(item => {
+      data.push([
+        item.descripcion,
+        item.codigo,
+        item.cantidad,
+        item.unidad_medida,
+        item.proyecto,
+        item.solicitante,
+        item.cotizador,
+        item.precio_unitario
+      ]);
+    });
+    
+    // Crear hoja de Excel
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ítems');
+    XLSX.writeFile(wb, 'items_no_finalizados.xlsx');
+  } catch (err) {
+    console.error('Error al generar Excel de ítems:', err);
+    alert(`Error al generar Excel: ${err.message}`);
+  }
+}
+// GENERAR PDF LISTA ITEMS
+async function generateItemsPDF() {
+  try {
+    const response = await fetch('https://gestion-altoandina.onrender.com/api/ordenes?estado=', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al cargar órdenes');
+    }
+    const ordenes = await response.json();
+    const filteredOrdenes = ordenes.filter(orden => 
+      ['Pendiente', 'Cotizada', 'Modificada', 'Aprobada'].includes(orden.estado)
+    );
+    
+    const items = [];
+    filteredOrdenes.forEach(orden => {
+      orden.items.forEach(item => {
+        items.push({
+          descripcion: item.descripcion,
+          codigo: item.codigo || 'N/A',
+          cantidad: item.cantidad,
+          unidad_medida: item.unidad_medida,
+          proyecto: orden.proyecto,
+          solicitante: orden.creado_por?.username || 'Desconocido',
+          cotizador: orden.cotizado_por?.username || 'No cotizado',
+          precio_unitario: item.precio_unitario ? `$${item.precio_unitario.toFixed(2)}` : 'No cotizado'
+        });
+      });
+    });
+    
+    // Aplicar filtros
+    const filtroProyecto = document.getElementById('filtro-proyecto-items')?.value || '';
+    const mostrarCotizados = document.getElementById('filtro-cotizados')?.checked;
+    const ordenarPor = document.getElementById('ordenar-items')?.value || 'default';
+    
+    let filteredItems = items;
+    if (filtroProyecto) {
+      filteredItems = filteredItems.filter(item => item.proyecto === filtroProyecto);
+    }
+    if (!mostrarCotizados) {
+      filteredItems = filteredItems.filter(item => item.precio_unitario === 'No cotizado');
+    }
+    if (ordenarPor === 'descripcion') {
+      filteredItems.sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+    } else if (ordenarPor === 'descripcion-desc') {
+      filteredItems.sort((a, b) => b.descripcion.localeCompare(a.descripcion));
+    }
+    
+    // Generar PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text('Lista de Ítems en Órdenes No Finalizadas', 10, 10);
+    let y = 20;
+    doc.setFontSize(10);
+    doc.text(['Descripción', 'Código', 'Cantidad', 'Unidad', 'Proyecto', 'Solicitante', 'Cotizador', 'Precio Unitario'].join('\t'), 10, y);
+    y += 10;
+    filteredItems.forEach(item => {
+      const row = [
+        item.descripcion.substring(0, 20), // Limitar longitud para evitar desbordes
+        item.codigo,
+        item.cantidad.toString(),
+        item.unidad_medida,
+        item.proyecto.substring(0, 15),
+        item.solicitante.substring(0, 15),
+        item.cotizador.substring(0, 15),
+        item.precio_unitario
+      ].join('\t');
+      doc.text(row, 10, y);
+      y += 10;
+      if (y > 280) { // Nueva página si se pasa del límite
+        doc.addPage();
+        y = 10;
+      }
+    });
+    doc.save('items_no_finalizados.pdf');
+  } catch (err) {
+    console.error('Error al generar PDF de ítems:', err);
+    alert(`Error al generar PDF: ${err.message}`);
   }
 }
 window.cotizarOrden = cotizarOrden;
