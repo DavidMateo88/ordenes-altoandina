@@ -268,7 +268,14 @@ async function loadOrdenes() {
     const container = document.getElementById('ordenes-container');
     container.innerHTML = '';
     ordenes
-      .filter(orden => showFinalizadas || orden.estado !== 'Completada')
+      .filter(orden => {
+        // Para Cotizador, excluir siempre órdenes completadas
+        if (role === 'Cotizador') {
+          return orden.estado !== 'Completada';
+        }
+        // Para Gerente, respetar showFinalizadas
+        return role === 'Gerente' ? (showFinalizadas || orden.estado !== 'Completada') : true;
+      })
       .forEach(orden => {
         const div = document.createElement('div');
         div.className = 'orden';
@@ -277,41 +284,41 @@ async function loadOrdenes() {
           (Precio: $${item.precio_unitario?.toFixed(2) || '0.00'}, Subtotal: $${item.subtotal?.toFixed(2) || '0.00'})
         `).join('<br>');
         div.innerHTML = `
-  <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
-  <p>Ubicación: ${orden.ubicacion}</p>
-  <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
-  <p>Ítems:<br>${itemsList}</p>
-  <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
-  <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
-  ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
-  ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
-  ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
-  ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
-  ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
-  ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
-  ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
-  ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
-    <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
-  ` : ''}
-  ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
-    <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
-  ` : ''}
-  ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
-    <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
-  ` : ''}
-  ${role === 'Cotizador' || role === 'Gerente' ? `
-    <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
-    <button onclick="generateExcel('${orden._id}')">Generar Excel</button>
-  ` : ''}
-  ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
-    <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
-    <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
-    <button onclick="approveOrden('${orden._id}')">Aprobar</button>
-  ` : ''}
-  ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
-    <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
-  ` : ''}
-`;
+          <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
+          <p>Ubicación: ${orden.ubicacion}</p>
+          <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
+          <p>Ítems:<br>${itemsList}</p>
+          <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
+          <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
+          ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
+          ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
+          ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
+          ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
+          ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
+          ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
+            <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
+          ` : ''}
+          ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
+            <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
+          ` : ''}
+          ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
+            <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
+          ` : ''}
+          ${role === 'Cotizador' || role === 'Gerente' ? `
+            <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
+            <button onclick="generateExcel('${orden._id}')">Generar Excel</button>
+          ` : ''}
+          ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
+            <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
+            <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
+            <button onclick="approveOrden('${orden._id}')">Aprobar</button>
+          ` : ''}
+          ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
+            <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
+          ` : ''}
+        `;
         container.appendChild(div);
       });
     if (role === 'Cotizador') {
