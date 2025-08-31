@@ -1,57 +1,62 @@
+/* Estilo general del cuerpo */
 body {
   font-family: Arial, sans-serif;
   margin: 20px;
-}
-
-body {
   background-image: linear-gradient(rgba(5, 7, 12, 0.50), rgba(5, 7, 12, 0.50)),
-   url("https://altoandina.com.ar/wp-content/uploads/2019/04/AltoAndina-1.jpg"); /* Reemplaza esta URL por la tuya */
+   url("https://altoandina.com.ar/wp-content/uploads/2019/04/AltoAndina-1.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
+/* Estilos para encabezados */
 h1, h2, h3 {
   color: #000000;
 }
 
+/* Contenedores principales */
 #login-form, #orden-form, #cotizar-form, #move-stock, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
   margin-bottom: 20px;
   padding: 20px;
-  border: 1px flex #000000;
+  border: 1px solid #000000;
   border-radius: 5px;
   background: rgba(242, 244, 247, 0.30);
 }
 
+/* Estilo para filas de ítems y facturas */
 .item-row, .factura-input {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
 }
 
+/* Inputs dentro de filas */
 .item-row input, .factura-input input {
   flex: 1;
 }
 
+/* Contenedores de órdenes y depósitos */
 #ordenes-container .orden, #depositos-container .deposito {
   border: 1px solid #000000;
-  /*  background-image: url("https://wallpapers.com/images/hd/black-and-white-8k-tiger-uhd-ul9hqpv3mh3c0xr8.jpg");*/
   padding: 10px;
   margin-bottom: 10px;
   border-radius: 5px;
   background: rgba(242, 244, 247, 0.30);
 }
 
+/* Contenedor de stock */
 #stock-deposito-container {
   margin-top: 20px;
   background: rgba(242, 244, 247, 0.30);
 }
 
+/* Elementos de stock */
 #stock-items div {
   padding: 5px;
   border-bottom: 1px solid #eee;
 }
 
+/* Estilo para botones */
 button {
   padding: 8px 16px;
   background-color: #007bff;
@@ -61,13 +66,51 @@ button {
   cursor: pointer;
 }
 
+/* Efecto hover para botones */
 button:hover {
   background-color: #0056b3;
 }
 
+/* Estilo para inputs, selects y textareas */
 input, select, textarea {
   padding: 8px;
   margin: 5px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
+}
+
+/* Estilo para select de estados (múltiple) */
+#filtro-estado {
+  width: 200px;
+  height: 200px; /* Altura para mostrar todas las opciones */
+}
+
+/* Estilo para select de proyectos */
+#proyectos-select {
+  width: 300px;
+  margin-top: 10px;
+}
+
+/* Estilo para botones en controles de órdenes */
+#ordenes-controls button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+/* Efecto hover para botones en controles de órdenes */
+#ordenes-controls button:hover {
+  background-color: #0056b3;
+}
+#orden-form select {
+  padding: 8px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 300px; /* Ajusta según tu diseño */
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }

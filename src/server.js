@@ -7,6 +7,7 @@ const ordenRoutes = require('./routes/ordenes');
 const stockRoutes = require('./routes/stock');
 const reportesRoutes = require('./routes/reportes');
 const depositosRoutes = require('./routes/depositos');
+const proyectosRoutes = require('./routes/proyectos');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/ordenes', ordenRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/depositos', depositosRoutes);
+app.use('/api/proyectos', proyectosRoutes); // Añadir rutas de proyectos
 
 // Ruta raíz
 app.get('/', (req, res) => {

@@ -14,22 +14,28 @@
     <input type="password" id="password" placeholder="Contraseña" required>
     <button onclick="login()">Iniciar Sesión</button>
   </div>
-  <!-- Panel principal -->
+  <!-- Panel principal, oculto hasta que el usuario inicia sesión -->
   <div id="app" style="display: none;">
-    <!-- Formulario para crear/editar órdenes (Solicitante) -->
+    <!-- Formulario para crear/editar órdenes (visible para Solicitante) -->
     <div id="orden-form" style="display: none;">
       <h2>Crear/Editar Orden</h2>
       <input type="hidden" id="orden-id">
-      <input type="text" id="proyecto" placeholder="Proyecto" required>
+      <label for="proyecto">Proyecto:</label>
+      <select id="proyecto" required>
+        <option value="">Seleccione un proyecto</option>
+      </select>
+      <label for="ubicacion">Ubicación:</label>
       <input type="text" id="ubicacion" placeholder="Ubicación" required>
+      <label for="deposito">Depósito:</label>
       <select id="deposito" required>
         <option value="">Seleccionar Depósito</option>
       </select>
+      <label for="observaciones">Observaciones:</label>
       <textarea id="observaciones" placeholder="Observaciones (opcional)"></textarea>
       <div id="items-container">
         <div class="item-row">
           <input type="text" class="item-descripcion" placeholder="Descripción" required>
-          <input type="text" class="item-codigo" placeholder="codigo (opcional)" required>
+          <input type="text" class="item-codigo" placeholder="Código (opcional)">
           <input type="number" class="item-cantidad" placeholder="Cantidad" required min="1">
           <input type="text" class="item-unidad" placeholder="Unidad" required>
           <button onclick="this.parentElement.remove()">Eliminar</button>
@@ -39,72 +45,71 @@
       <button id="create-orden" onclick="createOrden()">Crear Orden</button>
       <button id="save-orden" onclick="saveOrden()" style="display: none;">Guardar Cambios</button>
     </div>
-    <!-- Formulario para cotizar órdenes (Cotizador) -->
-<!-- Formulario para cotizar órdenes (Cotizador) -->
-<div id="cotizar-form" style="display: none;">
-  <h2>Cotizar Orden</h2>
-  <div id="cotizar-orden-details"></div>
-  <div id="cotizar-items-container"></div>
-  <button onclick="saveCotizacion()">Guardar Cotización</button>
-</div>
-<!-- Lista de ítems para Cotizador -->
-<div id="items-list" style="display: none;">
-  <h2>Lista de Ítems en Órdenes No Finalizadas</h2>
-  <div id="items-controls">
-    <label for="filtro-proyecto-items">Filtrar por proyecto:</label>
-    <select id="filtro-proyecto-items">
-      <option value="">Todos</option>
-    </select>
-    <label for="filtro-cotizados">Mostrar ítems cotizados:</label>
-    <input type="checkbox" id="filtro-cotizados" checked>
-    <label for="ordenar-items">Ordenar por:</label>
-    <select id="ordenar-items">
-      <option value="default">Orden por defecto</option>
-      <option value="descripcion">Descripción (A-Z)</option>
-      <option value="descripcion-desc">Descripción (Z-A)</option>
-    </select>
-    <button onclick="generateItemsExcel()">Exportar a Excel</button>
-    <button onclick="generateItemsPDF()">Exportar a PDF</button>
-  </div>
-  <table id="items-table">
-    <thead>
-      <tr>
-        <th>Descripción</th>
-        <th>Código</th>
-        <th>Cantidad</th>
-        <th>Unidad</th>
-        <th>Proyecto</th>
-        <th>Solicitante</th>
-        <th>Cotizador</th>
-        <th>Precio Unitario</th>
-      </tr>
-    </thead>
-    <tbody id="items-table-body"></tbody>
-  </table>
-</div>
-
-      <!-- Cargar factura -->
-      <div id="factura-form" style="display: none;">
-        <h3>Cargar Facturas</h3>
-        <div id="facturas-container">
-          <input type="text" class="factura-input" placeholder="Número de Factura">
-        </div>
-        <button onclick="addFacturaInput()">Añadir Factura</button>
-        <button onclick="uploadFacturas()">Cargar Facturas</button>
+    <!-- Formulario para cotizar órdenes (visible para Cotizador) -->
+    <div id="cotizar-form" style="display: none;">
+      <h2>Cotizar Orden</h2>
+      <div id="cotizar-orden-details"></div>
+      <div id="cotizar-items-container"></div>
+      <button onclick="saveCotizacion()">Guardar Cotización</button>
+    </div>
+    <!-- Lista de ítems para Cotizador -->
+    <div id="items-list" style="display: none;">
+      <h2>Lista de Ítems en Órdenes No Finalizadas</h2>
+      <div id="items-controls">
+        <label for="filtro-proyecto-items">Filtrar por proyecto:</label>
+        <select id="filtro-proyecto-items">
+          <option value="">Todos</option>
+        </select>
+        <label for="filtro-cotizados">Mostrar ítems cotizados:</label>
+        <input type="checkbox" id="filtro-cotizados" checked>
+        <label for="ordenar-items">Ordenar por:</label>
+        <select id="ordenar-items">
+          <option value="default">Orden por defecto</option>
+          <option value="descripcion">Descripción (A-Z)</option>
+          <option value="descripcion-desc">Descripción (Z-A)</option>
+        </select>
+        <button onclick="generateItemsExcel()">Exportar a Excel</button>
+        <button onclick="generateItemsPDF()">Exportar a PDF</button>
       </div>
+      <table id="items-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Código</th>
+            <th>Cantidad</th>
+            <th>Unidad</th>
+            <th>Proyecto</th>
+            <th>Solicitante</th>
+            <th>Cotizador</th>
+            <th>Precio Unitario</th>
+          </tr>
+        </thead>
+        <tbody id="items-table-body"></tbody>
+      </table>
+    </div>
+    <!-- Formulario para cargar facturas (visible para Cotizador) -->
+    <div id="factura-form" style="display: none;">
+      <h3>Cargar Facturas</h3>
+      <div id="facturas-container">
+        <input type="text" class="factura-input" placeholder="Número de Factura">
+      </div>
+      <button onclick="addFacturaInput()">Añadir Factura</button>
+      <button onclick="uploadFacturas()">Cargar Facturas</button>
     </div>
     <!-- Lista de órdenes -->
     <h2>Mis Órdenes</h2>
     <div id="ordenes-controls" style="display: none;">
       <label for="filtro-estado">Filtrar por estado:</label>
-      <select id="filtro-estado">
-        <option value="">Todos</option>
+      <!-- Select múltiple para filtrar por estados -->
+      <select id="filtro-estado" multiple size="8">
+        <option value="Todas">Todas</option>
         <option value="Pendiente">Pendiente</option>
         <option value="Cotizada">Cotizada</option>
         <option value="Modificada">Modificada</option>
         <option value="Aprobada">Aprobada</option>
         <option value="Rechazada">Rechazada</option>
         <option value="Completada">Completada</option>
+        <option value="Ocultar todas">Ocultar todas</option>
       </select>
       <label for="filtro-proyecto">Filtrar por proyecto:</label>
       <select id="filtro-proyecto">
@@ -112,13 +117,16 @@
       </select>
       <label for="ordenar-por">Ordenar por:</label>
       <select id="ordenar-por">
-        <option value="fecha">Fecha de carga</option>
+        <option value="fecha-desc">Más reciente</option>
+        <option value="fecha-asc">Más antiguo</option>
         <option value="estado">Estado</option>
       </select>
-      <button onclick="toggleFinalizadas()">Mostrar/Ocultar Finalizadas</button>
+      <!-- Botones para exportar órdenes filtradas -->
+      <button onclick="generateOrdenesExcel()">Exportar a Excel</button>
+      <button onclick="generateOrdenesPDF()">Exportar a PDF</button>
     </div>
     <div id="ordenes-container"></div>
-    <!-- Gestión de stock (solo Gerente) -->
+    <!-- Gestión de stock (visible para Gerente) -->
     <div id="move-stock" style="display: none;">
       <h2>Mover Stock</h2>
       <input type="text" id="producto" placeholder="Buscar producto..." list="productos-sugeridos">
@@ -133,20 +141,33 @@
       <button onclick="moveStock()">Mover Stock</button>
       <div id="stock-deposito-container"></div>
     </div>
-    <!-- Gestión de depósitos (solo Gerente) -->
+    <!-- Gestión de depósitos y proyectos (visible para Gerente) -->
     <div id="gestion-depositos" style="display: none;">
       <h2>Gestionar Depósitos</h2>
       <input type="text" id="nuevo-deposito-nombre" placeholder="Nombre del Depósito">
       <input type="text" id="nuevo-deposito-ubicacion" placeholder="Ubicación del Depósito">
       <button onclick="createDeposito()">Crear Depósito</button>
       <div id="depositos-container"></div>
+      <!-- Gestión de Proyectos -->
+      <h2>Gestionar Proyectos</h2>
+      <input type="text" id="nuevo-proyecto-nombre" placeholder="Nombre del Proyecto">
+      <input type="hidden" id="proyecto-id">
+      <button id="create-proyecto" onclick="createProyecto()">Crear Proyecto</button>
+      <button id="save-proyecto" onclick="editProyecto()" style="display: none;">Guardar Cambios</button>
+      <!-- Dropdown para seleccionar proyectos -->
+      <select id="proyectos-select">
+        <option value="">Seleccione un proyecto</option>
+      </select>
+      <button onclick="prepareEditProyecto()">Editar Proyecto</button>
+      <button onclick="deleteProyecto()">Eliminar Proyecto</button>
     </div>
-    <!-- Informe de stock (solo Gerente) -->
+    <!-- Informe de stock (visible para Gerente) -->
     <div id="stock-report" style="display: none;">
       <h2>Informe de Stock</h2>
       <button onclick="generateStockPDF()">Generar PDF de Stock</button>
     </div>
   </div>
+  <!-- Dependencias para exportación -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
