@@ -8,6 +8,23 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
+/* public/styles.css */
+#rrhh-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+}
+
+.container {
+  position: relative;
+  padding-top: 50px; /* Espacio para el botón */
+}
+
+/* Ajustes para evitar superposiciones */
+#app {
+  margin-top: 20px;
+}
 
 /* Estilos para encabezados */
 h1, h2, h3 {
@@ -15,7 +32,7 @@ h1, h2, h3 {
 }
 
 /* Contenedores principales */
-#login-form, #orden-form, #cotizar-form, #move-stock, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
+#login-form, #orden-form, #cotizar-form, #move-stock, #empleadosChart, #rostersChart, #rrhh-content, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
   margin-bottom: 20px;
   padding: 20px;
   border: 1px solid #000000;
@@ -113,4 +130,258 @@ input, select, textarea {
   max-width: 300px; /* Ajusta según tu diseño */
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+/* public/styles.css */
+:root {
+  --bg-color: #fff;
+  --text-color: #000;
+  --card-bg: #f8f9fa;
+  --table-bg: #fff;
+  --table-border: #dee2e6;
+  --btn-primary-bg: #007bff;
+  --btn-primary-text: #fff;
+  --modal-bg: #fff;
+  --modal-header-bg: #f8f9fa;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --card-bg: #2c2c2c;
+  --table-bg: #2c2c2c;
+  --table-border: #444;
+  --btn-primary-bg: #0056b3;
+  --btn-primary-text: #e0e0e0;
+  --modal-bg: #2c2c2c;
+  --modal-header-bg: #3a3a3a;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+  padding-top: 20px;
+}
+
+#rrhh-content {
+  margin-top: 20px;
+}
+
+h1, h2, h3 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Estilos para el formulario de login */
+#login-form {
+  max-width: 400px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid var(--table-border);
+  border-radius: 5px;
+  background-color: var(--card-bg);
+}
+
+#login-form input {
+  margin-bottom: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--table-border);
+  border-radius: 4px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+#login-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+/* Estilos para el interruptor de tema */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--btn-primary-bg);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* Estilos para las pestañas */
+.nav-tabs {
+  margin-bottom: 20px;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-color);
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--card-bg);
+  border-color: var(--table-border);
+  color: var(--text-color);
+}
+
+/* Estilos para el dashboard */
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--table-border);
+  margin-bottom: 20px;
+}
+
+.card-title {
+  color: var(--text-color);
+}
+
+.card-text {
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+#calendar {
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: var(--card-bg);
+  padding: 10px;
+  border-radius: 5px;
+}
+
+/* Estilos para los filtros */
+.mb-3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mb-3 label {
+  margin-bottom: 0;
+  color: var(--text-color);
+}
+
+.mb-3 input, .mb-3 select {
+  padding: 8px;
+  border: 1px solid var(--table-border);
+  border-radius: 4px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.mb-3 button {
+  padding: 8px 12px;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+/* Estilos para las tablas */
+.table {
+  background-color: var(--table-bg);
+  color: var(--text-color);
+  margin-bottom: 20px;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+  border-color: var(--table-border);
+}
+
+.table thead th {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+/* Estilos para los gráficos */
+canvas {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Estilos para los modales */
+.modal-content {
+  background-color: var(--modal-bg);
+  color: var(--text-color);
+}
+
+.modal-header {
+  background-color: var(--modal-header-bg);
+  border-bottom: 1px solid var(--table-border);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--table-border);
+}
+
+.modal-content input, .modal-content select, .modal-content textarea {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border-color: var(--table-border);
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .mb-3 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mb-3 input, .mb-3 select, .mb-3 button {
+    width: 100%;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+
+  #calendar {
+    max-width: 100%;
+  }
 }

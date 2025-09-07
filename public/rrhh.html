@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de RRHH</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Formulario de login -->
+    <div id="login-form">
+      <h2>Iniciar Sesión (RRHH - Solo Gerentes)</h2>
+      <form onsubmit="event.preventDefault(); login();">
+        <div class="form-group">
+          <label for="username">Usuario:</label>
+          <input type="text" class="form-control" id="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña:</label>
+          <input type="password" class="form-control" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+      </form>
+    </div>
+
+    <!-- Contenido de RRHH (oculto hasta login) -->
+    <div id="rrhh-content" style="display: none;">
+      <h1>Gestión de RRHH</h1>
+      <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+        <div>
+          <label class="switch">
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+            <span class="slider"></span>
+          </label>
+          <span>Tema Oscuro</span>
+        </div>
+      </div>
+      <button class="btn btn-success mb-3" onclick="exportCombinedReport()">Exportar Informe Combinado</button>
+
+      <!-- Pestañas -->
+      <ul class="nav nav-tabs" id="rrhhTabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="dashboard-tab" data-toggle="tab" href="#dashboard" role="tab">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="empleados-tab" data-toggle="tab" href="#empleados" role="tab">Empleados</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="rosters-tab" data-toggle="tab" href="#rosters" role="tab">Rosters</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="audit-tab" data-toggle="tab" href="#audit" role="tab">Auditoría</a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- Dashboard -->
+        <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+          <h2>Dashboard</h2>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Total Empleados</h5>
+                  <p class="card-text" id="totalEmpleados">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Rosters Activos</h5>
+                  <p class="card-text" id="rostersActivos">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Empleados en Licencia</h5>
+                  <p class="card-text" id="empleadosLicencia">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="mt-4">Calendario</h3>
+          <div id="calendar"></div>
+        </div>
+
+        <!-- Empleados -->
+        <div class="tab-pane fade" id="empleados" role="tabpanel">
+          <div class="mb-3">
+            <h2>Empleados</h2>
+            <label for="filter-rol">Filtrar por Rol:</label>
+            <input type="text" id="filter-rol" class="form-control d-inline-block w-auto" onkeyup="loadEmpleados()">
+            <label for="filter-estado">Estado:</label>
+            <select id="filter-estado" class="form-control d-inline-block w-auto" onchange="loadEmpleados()">
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="descanso">Descanso</option>
+              <option value="licencia">Licencia</option>
+              <option value="baja">Baja</option>
+            </select>
+            <label for="filter-proyecto">Proyecto:</label>
+            <input type="text" id="filter-proyecto" class="form-control d-inline-block w-auto" onkeyup="loadEmpleados()">
+            <button class="btn btn-primary" onclick="loadEmpleados()">Filtrar</button>
+            <button class="btn btn-success ml-2" onclick="exportEmpleadosToExcel()">Exportar a Excel</button>
+            <button class="btn btn-info ml-2" onclick="exportEmpleadosToPDF()">Exportar a PDF</button>
+          </div>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>DNI</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Proyecto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="empleados-body"></tbody>
+          </table>
+          <button class="btn btn-primary mb-3" id="add-empleado-btn">Agregar Empleado</button>
+          <div class="mb-3">
+            <h3>Distribución de Empleados por Estado</h3>
+            <canvas id="empleadosChart" style="max-height: 300px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Rosters -->
+        <div class="tab-pane fade" id="rosters" role="tabpanel">
+          <div class="mb-3">
+            <h2>Rosters</h2>
+            <label for="filter-proyecto-roster">Filtrar por Proyecto:</label>
+            <input type="text" id="filter-proyecto-roster" class="form-control d-inline-block w-auto" onkeyup="loadRosters()">
+            <button class="btn btn-primary" onclick="loadRosters()">Filtrar</button>
+            <button class="btn btn-success ml-2" onclick="exportRostersToExcel()">Exportar a Excel</button>
+            <button class="btn btn-info ml-2" onclick="exportRostersToPDF()">Exportar a PDF</button>
+          </div>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Proyecto</th>
+                <th>Empleados</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="rosters-body"></tbody>
+          </table>
+          <button class="btn btn-primary mb-3" id="add-roster-btn">Crear Roster</button>
+          <div class="mb-3">
+            <h3>Rosters por Proyecto</h3>
+            <canvas id="rostersChart" style="max-height: 300px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Auditoría -->
+        <div class="tab-pane fade" id="audit" role="tabpanel">
+          <h2>Auditoría</h2>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Entidad</th>
+                <th>Acción</th>
+                <th>Usuario</th>
+                <th>Fecha</th>
+                <th>Detalles</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal para empleado -->
+      <div class="modal fade" id="empleadoModal" tabindex="-1" aria-labelledby="empleadoModalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="empleadoModalTitle">Agregar Empleado</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="empleadoForm">
+                <input type="hidden" id="empleadoId">
+                <div class="form-group">
+                  <label for="nombre">Nombre:</label>
+                  <input type="text" class="form-control" id="nombre" required>
+                </div>
+                <div class="form-group">
+                  <label for="apellido">Apellido:</label>
+                  <input type="text" class="form-control" id="apellido" required>
+                </div>
+                <div class="form-group">
+                  <label for="dni">DNI:</label>
+                  <input type="text" class="form-control" id="dni" required>
+                </div>
+                <div class="form-group">
+                  <label for="rol">Rol:</label>
+                  <input type="text" class="form-control" id="rol" required>
+                </div>
+                <div class="form-group">
+                  <label for="estado">Estado:</label>
+                  <select class="form-control" id="estado" required>
+                    <option value="activo">Activo</option>
+                    <option value="descanso">Descanso</option>
+                    <option value="licencia">Licencia</option>
+                    <option value="baja">Baja</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="proyecto">Proyecto (opcional):</label>
+                  <input type="text" class="form-control" id="proyecto">
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="saveEmpleado()">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para licencia -->
+      <div class="modal fade" id="licenciaModal" tabindex="-1" aria-labelledby="licenciaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="licenciaModalLabel">Agregar Licencia</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="licenciaForm">
+                <input type="hidden" id="licenciaEmpleadoId">
+                <div class="form-group">
+                  <label for="tipo">Tipo de Licencia:</label>
+                  <select class="form-control" id="tipo" required>
+                    <option value="médica">Médica</option>
+                    <option value="vacaciones">Vacaciones</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fecha_inicio">Fecha Inicio:</label>
+                  <input type="date" class="form-control" id="fecha_inicio" required>
+                </div>
+                <div class="form-group">
+                  <label for="fecha_fin">Fecha Fin:</label>
+                  <input type="date" class="form-control" id="fecha_fin" required>
+                </div>
+                <div class="form-group">
+                  <label for="comentarios">Comentarios (opcional):</label>
+                  <textarea class="form-control" id="comentarios"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="saveLicencia()">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para historial de licencias -->
+      <div class="modal fade" id="licenciasModal" tabindex="-1" aria-labelledby="licenciasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="licenciasModalLabel">Historial de Licencias</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Fin</th>
+                    <th>Comentarios</th>
+                  </tr>
+                </thead>
+                <tbody id="licencias-body"></tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para roster -->
+      <div class="modal fade" id="rosterModal" tabindex="-1" aria-labelledby="rosterModalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="rosterModalTitle">Crear Roster</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form id="rosterForm">
+                <input type="hidden" id="rosterId">
+                <div class="form-group">
+                  <label for="rosterNombre">Nombre:</label>
+                  <input type="text" class="form-control" id="rosterNombre" required>
+                </div>
+                <div class="form-group">
+                  <label for="rosterFechaInicio">Fecha Inicio:</label>
+                  <input type="date" class="form-control" id="rosterFechaInicio" required>
+                </div>
+                <div class="form-group">
+                  <label for="rosterFechaFin">Fecha Fin:</label>
+                  <input type="date" class="form-control" id="rosterFechaFin" required>
+                </div>
+                <div class="form-group">
+                  <label for="rosterProyecto">Proyecto (opcional):</label>
+                  <input type="text" class="form-control" id="rosterProyecto">
+                </div>
+                <div class="form-group">
+                  <label for="rosterEmpleados">Empleados:</label>
+                  <select multiple class="form-control selectpicker" id="rosterEmpleados" data-live-search="true" title="Selecciona empleados"></select>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="saveRoster()">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dependencias -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="rrhh.js"></script>
+</body>
+</html>
