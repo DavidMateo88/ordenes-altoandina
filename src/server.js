@@ -26,10 +26,17 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/depositos', depositosRoutes);
 app.use('/api/proyectos', proyectosRoutes); // Añadir rutas de proyectos
+app.use('/api/empleados', require('./routes/empleados'));
+app.use('/api/rosters', require('./routes/rosters'));
 
 // Ruta raíz
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: 'public' });
+});
+
+// Ruta para RRHH
+app.get('/rrhh', (req, res) => {
+  res.sendFile('rrhh.html', { root: 'public' });
 });
 
 // Iniciar servidor
