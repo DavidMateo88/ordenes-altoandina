@@ -18,7 +18,7 @@ async function login() {
   }
 
   try {
-    const response = await fetch('http://localhost:5000/api/auth/login', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -68,7 +68,7 @@ async function login() {
 // Cargar depósitos
 async function loadDepositos() {
   try {
-    const response = await fetch('http://localhost:5000/api/depositos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -114,7 +114,7 @@ function handleDepositoChange() {
 async function loadProductosSugeridos() {
   if (!token || role !== 'Gerente') return;
   try {
-    const response = await fetch('http://localhost:5000/api/stock/productos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/stock/productos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -153,7 +153,7 @@ async function loadProductosSugeridos() {
 // Cargar stock de un depósito
 async function loadStockDeposito(depositoId) {
   try {
-    const response = await fetch(`http://localhost:5000/api/stock/deposito/${depositoId}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/stock/deposito/${depositoId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -233,7 +233,7 @@ function renderStock(stock) {
 // Cargar proyectos para filtro
 async function loadProyectosForFilter() {
   try {
-    const response = await fetch('http://localhost:5000/api/proyectos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -264,7 +264,7 @@ async function loadProyectosForFilter() {
 // CARGAR PROYECTOS ORDENES
 async function loadProyectosForOrdenForm() {
   try {
-    const response = await fetch('http://localhost:5000/api/proyectos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -292,7 +292,7 @@ async function loadProyectosForOrdenForm() {
 // Cargar proyectos para gestión (Gerente)
 async function loadProyectosForGestion() {
   try {
-    const response = await fetch('http://localhost:5000/api/proyectos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -331,7 +331,7 @@ async function createProyecto() {
  }
 
  try {
- const response = await fetch('http://localhost:5000/api/proyectos', {
+ const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
  method: 'POST',
  headers: {
  'Content-Type': 'application/json',
@@ -380,7 +380,7 @@ async function editProyecto() {
  }
 
  try {
- const response = await fetch(`http://localhost:5000/api/proyectos/${id}`, {
+ const response = await fetch(`https://ordenes-altoandina.onrender.com/api/proyectos/${id}`, {
  method: 'PUT',
  headers: {
  'Content-Type': 'application/json',
@@ -417,7 +417,7 @@ async function deleteProyecto() {
   if (!confirm('¿Estás seguro de eliminar este proyecto? Asegúrate de que no esté asociado a órdenes activas.')) return;
 
   try {
-    const response = await fetch(`http://localhost:5000/api/proyectos/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/proyectos/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -439,7 +439,7 @@ async function loadOrdenes() {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const ordenes = await response.json();
@@ -510,7 +510,7 @@ async function loadOrdenes() {
 //LISTA COTIZADOR
 async function loadItemsForCotizador() {
   try {
-    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -643,7 +643,7 @@ function createOrden() {
     return;
   }
 
-  fetch('http://localhost:5000/api/ordenes', {
+  fetch('https://ordenes-altoandina.onrender.com/api/ordenes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -671,7 +671,7 @@ function createOrden() {
 // Editar orden
 async function editOrden(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const orden = await response.json();
@@ -734,7 +734,7 @@ function saveOrden() {
     return;
   }
 
-  fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
+  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -763,7 +763,7 @@ function saveOrden() {
 async function cotizarOrden(id) {
   document.getElementById('cotizar-form').style.display = 'block';
   try {
-    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -839,7 +839,7 @@ function saveCotizacion() {
     return;
   }
 
-  fetch(`http://localhost:5000/api/ordenes/cotizar/${currentOrdenId}`, {
+  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/cotizar/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -899,7 +899,7 @@ async function uploadFacturas() {
 
   try {
     // Obtener la orden para enviar sus ítems
-    const response = await fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -912,7 +912,7 @@ async function uploadFacturas() {
     console.log('Ítems enviados:', items); // Log adicional
 
     // Enviar facturas e ítems al backend
-    const updateResponse = await fetch(`http://localhost:5000/api/ordenes/factura/${currentOrdenId}`, {
+    const updateResponse = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/factura/${currentOrdenId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -956,7 +956,7 @@ function rejectOrden(id) {
     return;
   }
 
-  fetch(`http://localhost:5000/api/ordenes/rechazar/${id}`, {
+  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/rechazar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -982,7 +982,7 @@ function rejectOrden(id) {
 
 // Aprobar orden
 function approveOrden(id) {
-  fetch(`http://localhost:5000/api/ordenes/aprobar/${id}`, {
+  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/aprobar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -1008,7 +1008,7 @@ function approveOrden(id) {
 // Generar PDF de orden
 async function generatePDF(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/reportes/orden/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/reportes/orden/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1034,7 +1034,7 @@ async function generatePDF(id) {
 
 async function generateExcel(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1093,7 +1093,7 @@ async function generateAllOrdersExcel() {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1140,7 +1140,7 @@ async function generateAllOrdersExcel() {
 // Generar PDF de stock
 async function generateStockPDF() {
   try {
-    const response = await fetch('http://localhost:5000/api/reportes/stock', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/reportes/stock', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1175,7 +1175,7 @@ async function createDeposito() {
   }
 
   try {
-    const response = await fetch('http://localhost:5000/api/depositos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1203,7 +1203,7 @@ async function createDeposito() {
 // Cargar depósitos para gestión
 async function loadDepositosForGestion() {
   try {
-    const response = await fetch('http://localhost:5000/api/depositos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const depositos = await response.json();
@@ -1228,7 +1228,7 @@ async function loadDepositosForGestion() {
 // Eliminar depósito
 function deleteDeposito(id) {
   if (!confirm('¿Estás seguro de eliminar este depósito?')) return;
-  fetch(`http://localhost:5000/api/depositos/${id}`, {
+  fetch(`https://ordenes-altoandina.onrender.com/api/depositos/${id}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   })
@@ -1262,7 +1262,7 @@ async function moveStock() {
   }
 
   try {
-    const response = await fetch('http://localhost:5000/api/depositos/mover-stock', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos/mover-stock', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1321,7 +1321,7 @@ async function deleteOrden(id) {
   if (!confirm('¿Estás seguro de que deseas eliminar esta orden?')) return;
 
   try {
-    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -1346,7 +1346,7 @@ async function deleteOrden(id) {
 async function loadProductosSugeridos() {
   if (!token || role !== 'Gerente') return; // Solo cargar si hay token y el usuario es Gerente
   try {
-    const response = await fetch('http://localhost:5000/api/stock/productos', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/stock/productos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1383,7 +1383,7 @@ async function loadProductosSugeridos() {
 //FUNCION EXCEL TBLA ITEMS
 async function generateItemsExcel() {
   try {
-    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1460,7 +1460,7 @@ async function generateItemsExcel() {
 // GENERAR PDF LISTA ITEMS
 async function generateItemsPDF() {
   try {
-    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {

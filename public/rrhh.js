@@ -18,7 +18,7 @@ async function login() {
   }
 
   try {
-    const response = await fetch('http://localhost:5000/api/auth/login', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -66,9 +66,9 @@ function logout() {
 async function loadDashboard() {
   try {
     const [empleados, rosters, licencias] = await Promise.all([
-      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-      fetch('http://localhost:5000/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+      fetch('https://ordenes-altoandina.onrender.com/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('https://ordenes-altoandina.onrender.com/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('https://ordenes-altoandina.onrender.com/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
     ]);
 
     const today = new Date();
@@ -110,7 +110,7 @@ async function loadEmpleados() {
   const query = new URLSearchParams({ rol, estado, proyecto }).toString();
 
   try {
-    const response = await fetch(`http://localhost:5000/api/empleados?${query}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/empleados?${query}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta al cargar empleados:', response.status, response.statusText);
@@ -245,7 +245,7 @@ async function loadRosters() {
   const query = new URLSearchParams({ proyecto }).toString();
 
   try {
-    const response = await fetch(`http://localhost:5000/api/rosters?${query}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/rosters?${query}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta al cargar rosters:', response.status, response.statusText);
@@ -371,9 +371,9 @@ function exportRostersToPDF() {
 async function exportCombinedReport() {
   try {
     const [empleados, rosters, licencias] = await Promise.all([
-      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-      fetch('http://localhost:5000/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+      fetch('https://ordenes-altoandina.onrender.com/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('https://ordenes-altoandina.onrender.com/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('https://ordenes-altoandina.onrender.com/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
     ]);
 
     // Excel
@@ -441,8 +441,8 @@ async function exportCombinedReport() {
 async function loadAuditLog() {
   try {
     const [empleados, rosters] = await Promise.all([
-      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+      fetch('https://ordenes-altoandina.onrender.com/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('https://ordenes-altoandina.onrender.com/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
     ]);
 
     const auditLogs = [
@@ -492,7 +492,7 @@ function showAddEmpleadoModal() {
 // Mostrar modal para editar empleado
 async function showEditEmpleadoModal(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/empleados/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/empleados/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta al cargar empleado:', response.status, response.statusText);
@@ -520,7 +520,7 @@ async function showEditEmpleadoModal(id) {
 // Mostrar modal para historial de licencias
 async function showLicenciasModal(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/empleados/${id}/licencias`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/empleados/${id}/licencias`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta al cargar licencias:', response.status, response.statusText);
@@ -563,7 +563,7 @@ async function saveEmpleado() {
 
   try {
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `http://localhost:5000/api/empleados/${id}` : 'http://localhost:5000/api/empleados';
+    const url = id ? `https://ordenes-altoandina.onrender.com/api/empleados/${id}` : 'https://ordenes-altoandina.onrender.com/api/empleados';
     const response = await fetch(url, {
       method,
       headers: {
@@ -591,7 +591,7 @@ async function saveEmpleado() {
 async function deleteEmpleado(id) {
   if (!confirm('¿Confirmar baja del empleado?')) return;
   try {
-    const response = await fetch(`http://localhost:5000/api/empleados/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/empleados/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -627,7 +627,7 @@ async function saveLicencia() {
   };
 
   try {
-    const response = await fetch(`http://localhost:5000/api/empleados/${id}/licencia`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/empleados/${id}/licencia`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -667,7 +667,7 @@ async function showAddRosterModal() {
 // Mostrar modal para editar roster
 async function showEditRosterModal(id) {
   try {
-    const response = await fetch(`http://localhost:5000/api/rosters/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/rosters/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta al cargar roster:', response.status, response.statusText);
@@ -706,7 +706,7 @@ async function loadEmpleadosSelect(selected = []) {
 
   try {
     console.log('Iniciando carga de empleados para select, preseleccionados:', selected);
-    const response = await fetch('http://localhost:5000/api/empleados?estado=activo', {
+    const response = await fetch('https://ordenes-altoandina.onrender.com/api/empleados?estado=activo', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Respuesta del servidor:', response.status, response.statusText);
@@ -720,10 +720,10 @@ async function loadEmpleadosSelect(selected = []) {
 
     // Filtrar empleados en licencia o con rosters superpuestos
     if (startDate && endDate) {
-      const allRosters = await fetch('http://localhost:5000/api/rosters', {
+      const allRosters = await fetch('https://ordenes-altoandina.onrender.com/api/rosters', {
         headers: { 'Authorization': `Bearer ${token}` }
       }).then(res => res.json());
-      const allLicencias = await fetch('http://localhost:5000/api/empleados/licencias', {
+      const allLicencias = await fetch('https://ordenes-altoandina.onrender.com/api/empleados/licencias', {
         headers: { 'Authorization': `Bearer ${token}` }
       }).then(res => res.json());
 
@@ -820,7 +820,7 @@ async function saveRoster() {
 
   try {
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `http://localhost:5000/api/rosters/${id}` : 'http://localhost:5000/api/rosters';
+    const url = id ? `https://ordenes-altoandina.onrender.com/api/rosters/${id}` : 'https://ordenes-altoandina.onrender.com/api/rosters';
     const response = await fetch(url, {
       method,
       headers: {
@@ -848,7 +848,7 @@ async function saveRoster() {
 async function deleteRoster(id) {
   if (!confirm('¿Confirmar eliminación del roster?')) return;
   try {
-    const response = await fetch(`http://localhost:5000/api/rosters/${id}`, {
+    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/rosters/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
