@@ -1,8 +1,10 @@
 // Variables globales
 let token = null;
 let role = null;
-let currentEmpleados = []; // Almacenar empleados cargados
-let currentRosters = []; // Almacenar rosters cargados
+let currentEmpleados = [];
+let currentRosters = [];
+let empleadosChart = null;
+let rostersChart = null;
 
 // Iniciar sesión
 async function login() {
@@ -48,6 +50,8 @@ function logout() {
   role = null;
   currentEmpleados = [];
   currentRosters = [];
+  if (empleadosChart) empleadosChart.destroy();
+  if (rostersChart) rostersChart.destroy();
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('rrhh-content').style.display = 'none';
 }
@@ -89,10 +93,46 @@ async function loadEmpleados() {
       `;
       tbody.appendChild(tr);
     });
+    renderEmpleadosChart();
   } catch (err) {
     console.error('Error al cargar empleados:', err);
     alert(`Error al cargar empleados: ${err.message}`);
   }
+}
+
+// Renderizar gráfico de empleados por estado
+function renderEmpleadosChart() {
+  const ctx = document.getElementById('empleadosChart').getContext('2d');
+  const estados = ['activo', 'descanso', 'licencia', 'baja'];
+  const counts = estados.map(estado => 
+    currentEmpleados.filter(emp => emp.estado === estado).length
+  );
+
+  if (empleadosChart) empleadosChart.destroy();
+  empleadosChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Activo', 'Descanso', 'Licencia', 'Baja'],
+      datasets: [{
+        data: counts,
+        backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+      position: 'top',
+      labels: {
+        color: 'black' // ✅ Color de las etiquetas de la leyenda
+      }
+    },
+        title: { display: true,
+      text: 'Empleados por Estado',
+      color: 'black' }
+      }
+    }
+  });
 }
 
 // Exportar empleados a Excel
@@ -128,7 +168,6 @@ function exportEmpleadosToPDF() {
   const doc = new jsPDF();
   doc.text('Informe de Empleados', 14, 20);
 
-  // Filtros aplicados
   const rol = document.getElementById('filter-rol').value;
   const estado = document.getElementById('filter-estado').value;
   const proyecto = document.getElementById('filter-proyecto').value;
@@ -193,10 +232,63 @@ async function loadRosters() {
       `;
       tbody.appendChild(tr);
     });
+    renderRostersChart();
   } catch (err) {
     console.error('Error al cargar rosters:', err);
     alert(`Error al cargar rosters: ${err.message}`);
   }
+}
+
+// Renderizar gráfico de rosters por proyecto
+function renderRostersChart() {
+  const ctx = document.getElementById('rostersChart').getContext('2d');
+  const proyectos = [...new Set(currentRosters.map(roster => roster.proyecto || 'Sin Proyecto'))];
+  const counts = proyectos.map(proyecto => 
+    currentRosters.filter(roster => (roster.proyecto || 'Sin Proyecto') === proyecto).length
+  );
+
+  if (rostersChart) rostersChart.destroy();
+  rostersChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: proyectos,
+      datasets: [{
+        label: 'Número de Rosters',
+        data: counts,
+        backgroundColor: '#28a745'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            color: 'black' // ✅ Letras negras en la leyenda
+          }
+        },
+        title: {
+          display: true,
+          text: 'Rosters por Proyecto',
+          color: 'black' // ✅ Letras negras en el título
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          precision: 0,
+          ticks: {
+            color: 'black' // ✅ Letras negras en eje Y
+          }
+        },
+        x: {
+          ticks: {
+            color: 'black' // ✅ Letras negras en eje X
+          }
+        }
+      }
+    }
+  });
 }
 
 // Exportar rosters a Excel
@@ -217,7 +309,7 @@ function exportRostersToExcel() {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Rosters');
-  XLSX.writeFile(workbook, 'rosters.xlsx'); // ✅ Esta es la forma correcta
+  XLSX.writeFile(workbook, 'rosters.xlsx');
 }
 
 // Exportar rosters a PDF
@@ -231,7 +323,6 @@ function exportRostersToPDF() {
   const doc = new jsPDF();
   doc.text('Informe de Rosters', 14, 20);
 
-  // Filtros aplicados
   const proyecto = document.getElementById('filter-proyecto-roster').value;
   const filterText = proyecto ? `Filtro aplicado: Proyecto: ${proyecto}` : 'Sin filtros aplicados';
   doc.text(filterText, 14, 30);
@@ -436,8 +527,14 @@ async function showEditRosterModal(id) {
   }
 }
 
-// Cargar empleados en el select múltiple
+// Cargar empleados en el select múltiple con validaciones
 async function loadEmpleadosSelect(selected = []) {
+  const rosterId = document.getElementById('rosterId').value;
+  const fechaInicio = document.getElementById('rosterFechaInicio').value;
+  const fechaFin = document.getElementById('rosterFechaFin').value;
+  const startDate = fechaInicio ? new Date(fechaInicio) : null;
+  const endDate = fechaFin ? new Date(fechaFin) : null;
+
   try {
     console.log('Iniciando carga de empleados para select, preseleccionados:', selected);
     const response = await fetch('http://localhost:5000/api/empleados?estado=activo', {
@@ -449,8 +546,48 @@ async function loadEmpleadosSelect(selected = []) {
       console.error('Error en la respuesta:', error);
       throw new Error(error.error || `Error al cargar empleados para roster (Código: ${response.status})`);
     }
-    const empleados = await response.json();
+    let empleados = await response.json();
     console.log('Empleados recibidos:', empleados);
+
+    // Filtrar empleados en licencia o con rosters superpuestos
+    if (startDate && endDate) {
+      const allRosters = await fetch('http://localhost:5000/api/rosters', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(res => res.json());
+      const allLicencias = await fetch('http://localhost:5000/api/empleados/licencias', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(res => res.json());
+
+      empleados = empleados.filter(empleado => {
+        // Excluir empleados en licencia durante el período del roster
+        const enLicencia = allLicencias.some(licencia => 
+          licencia.empleado.toString() === empleado._id.toString() &&
+          new Date(licencia.fecha_inicio) <= endDate &&
+          new Date(licencia.fecha_fin) >= startDate
+        );
+        if (enLicencia) {
+          console.log(`Empleado ${empleado.nombre} ${empleado.apellido} excluido por estar en licencia`);
+          return false;
+        }
+
+        // Excluir empleados asignados a rosters superpuestos (excepto el roster actual)
+        const enRosterSuperpuesto = allRosters.some(roster => {
+          if (roster._id.toString() === rosterId) return false; // Ignorar el roster actual
+          const rosterStart = new Date(roster.fecha_inicio);
+          const rosterEnd = new Date(roster.fecha_fin);
+          const isOverlap = 
+            (startDate <= rosterEnd && endDate >= rosterStart) &&
+            !(endDate.toDateString() === rosterStart.toDateString() || startDate.toDateString() === rosterEnd.toDateString());
+          return isOverlap && roster.empleados.some(e => e._id.toString() === empleado._id.toString());
+        });
+        if (enRosterSuperpuesto) {
+          console.log(`Empleado ${empleado.nombre} ${empleado.apellido} excluido por roster superpuesto`);
+          return false;
+        }
+
+        return true;
+      });
+    }
 
     const select = document.getElementById('rosterEmpleados');
     if (!select) {
@@ -461,9 +598,9 @@ async function loadEmpleadosSelect(selected = []) {
 
     select.innerHTML = '';
     if (!Array.isArray(empleados) || empleados.length === 0) {
-      select.innerHTML = '<option value="" disabled>No hay empleados activos disponibles</option>';
-      console.warn('No se encontraron empleados activos');
-      alert('No hay empleados activos disponibles para asignar al roster');
+      select.innerHTML = '<option value="" disabled>No hay empleados disponibles</option>';
+      console.warn('No se encontraron empleados disponibles');
+      alert('No hay empleados disponibles para asignar al roster');
     } else {
       empleados.forEach(empleado => {
         const option = document.createElement('option');

@@ -47,7 +47,6 @@
         <label for="filter-proyecto">Proyecto:</label>
         <input type="text" id="filter-proyecto" class="form-control d-inline-block w-auto">
         <button class="btn btn-primary" onclick="loadEmpleados()">Filtrar</button>
-        <!-- Botones de exportación -->
         <button class="btn btn-success ml-2" onclick="exportEmpleadosToExcel()">Exportar a Excel</button>
         <button class="btn btn-info ml-2" onclick="exportEmpleadosToPDF()">Exportar a PDF</button>
       </div>
@@ -69,13 +68,18 @@
       </table>
       <button class="btn btn-primary mb-3" id="add-empleado-btn">Agregar Empleado</button>
 
+      <!-- Gráfico de empleados -->
+      <div class="mb-3">
+        <h3>Distribución de Empleados por Estado</h3>
+        <canvas id="empleadosChart" style="max-height: 300px;"></canvas>
+      </div>
+
       <!-- Filtros de rosters -->
       <div class="mb-3">
         <h2>Rosters</h2>
         <label for="filter-proyecto-roster">Filtrar por Proyecto:</label>
         <input type="text" id="filter-proyecto-roster" class="form-control d-inline-block w-auto">
         <button class="btn btn-primary" onclick="loadRosters()">Filtrar</button>
-        <!-- Botones de exportación -->
         <button class="btn btn-success ml-2" onclick="exportRostersToExcel()">Exportar a Excel</button>
         <button class="btn btn-info ml-2" onclick="exportRostersToPDF()">Exportar a PDF</button>
       </div>
@@ -95,6 +99,12 @@
         <tbody id="rosters-body"></tbody>
       </table>
       <button class="btn btn-primary mb-3" id="add-roster-btn">Crear Roster</button>
+
+      <!-- Gráfico de rosters -->
+      <div class="mb-3">
+        <h3>Rosters por Proyecto</h3>
+        <canvas id="rostersChart" style="max-height: 300px;"></canvas>
+      </div>
 
       <!-- Modal para empleado -->
       <div class="modal fade" id="empleadoModal" tabindex="-1" aria-labelledby="empleadoModalTitle" aria-hidden="true">
@@ -243,6 +253,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="rrhh.js"></script>
 </body>
 </html>

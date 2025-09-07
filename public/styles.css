@@ -32,7 +32,7 @@ h1, h2, h3 {
 }
 
 /* Contenedores principales */
-#login-form, #orden-form, #cotizar-form, #move-stock, #rrhh-content, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
+#login-form, #orden-form, #cotizar-form, #move-stock, #empleadosChart, #rostersChart, #rrhh-content, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
   margin-bottom: 20px;
   padding: 20px;
   border: 1px solid #000000;
@@ -130,4 +130,46 @@ input, select, textarea {
   max-width: 300px; /* Ajusta según tu diseño */
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+/* Estilos para los filtros */
+.mb-3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mb-3 label {
+  margin-bottom: 0;
+}
+
+.mb-3 input, .mb-3 select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.mb-3 button {
+  padding: 8px 12px;
+}
+
+/* Estilos para las tablas */
+.table {
+  margin-bottom: 20px;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+}
+
+/* Estilos para los gráficos */
+canvas {
+  border: 1px solid #000000;
+  max-width: 600px;
+  margin: 0 auto;
 }
