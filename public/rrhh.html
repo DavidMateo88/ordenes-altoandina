@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestión de RRHH</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,81 +30,155 @@
     <!-- Contenido de RRHH (oculto hasta login) -->
     <div id="rrhh-content" style="display: none;">
       <h1>Gestión de RRHH</h1>
-      <button class="btn btn-secondary mb-3" onclick="logout()">Cerrar Sesión</button>
-
-      <!-- Filtros de empleados -->
-      <div class="mb-3">
-        <h2>Empleados</h2>
-        <label for="filter-rol">Filtrar por Rol:</label>
-        <input type="text" id="filter-rol" class="form-control d-inline-block w-auto">
-        <label for="filter-estado">Estado:</label>
-        <select id="filter-estado" class="form-control d-inline-block w-auto">
-          <option value="">Todos</option>
-          <option value="activo">Activo</option>
-          <option value="descanso">Descanso</option>
-          <option value="licencia">Licencia</option>
-          <option value="baja">Baja</option>
-        </select>
-        <label for="filter-proyecto">Proyecto:</label>
-        <input type="text" id="filter-proyecto" class="form-control d-inline-block w-auto">
-        <button class="btn btn-primary" onclick="loadEmpleados()">Filtrar</button>
-        <button class="btn btn-success ml-2" onclick="exportEmpleadosToExcel()">Exportar a Excel</button>
-        <button class="btn btn-info ml-2" onclick="exportEmpleadosToPDF()">Exportar a PDF</button>
+      <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+        <div>
+          <label class="switch">
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+            <span class="slider"></span>
+          </label>
+          <span>Tema Oscuro</span>
+        </div>
       </div>
+      <button class="btn btn-success mb-3" onclick="exportCombinedReport()">Exportar Informe Combinado</button>
 
-      <!-- Tabla de empleados -->
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>DNI</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th>Proyecto</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="empleados-body"></tbody>
-      </table>
-      <button class="btn btn-primary mb-3" id="add-empleado-btn">Agregar Empleado</button>
+      <!-- Pestañas -->
+      <ul class="nav nav-tabs" id="rrhhTabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="dashboard-tab" data-toggle="tab" href="#dashboard" role="tab">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="empleados-tab" data-toggle="tab" href="#empleados" role="tab">Empleados</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="rosters-tab" data-toggle="tab" href="#rosters" role="tab">Rosters</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="audit-tab" data-toggle="tab" href="#audit" role="tab">Auditoría</a>
+        </li>
+      </ul>
 
-      <!-- Gráfico de empleados -->
-      <div class="mb-3">
-        <h3>Distribución de Empleados por Estado</h3>
-        <canvas id="empleadosChart" style="max-height: 300px;"></canvas>
-      </div>
+      <div class="tab-content">
+        <!-- Dashboard -->
+        <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+          <h2>Dashboard</h2>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Total Empleados</h5>
+                  <p class="card-text" id="totalEmpleados">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Rosters Activos</h5>
+                  <p class="card-text" id="rostersActivos">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Empleados en Licencia</h5>
+                  <p class="card-text" id="empleadosLicencia">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="mt-4">Calendario</h3>
+          <div id="calendar"></div>
+        </div>
 
-      <!-- Filtros de rosters -->
-      <div class="mb-3">
-        <h2>Rosters</h2>
-        <label for="filter-proyecto-roster">Filtrar por Proyecto:</label>
-        <input type="text" id="filter-proyecto-roster" class="form-control d-inline-block w-auto">
-        <button class="btn btn-primary" onclick="loadRosters()">Filtrar</button>
-        <button class="btn btn-success ml-2" onclick="exportRostersToExcel()">Exportar a Excel</button>
-        <button class="btn btn-info ml-2" onclick="exportRostersToPDF()">Exportar a PDF</button>
-      </div>
+        <!-- Empleados -->
+        <div class="tab-pane fade" id="empleados" role="tabpanel">
+          <div class="mb-3">
+            <h2>Empleados</h2>
+            <label for="filter-rol">Filtrar por Rol:</label>
+            <input type="text" id="filter-rol" class="form-control d-inline-block w-auto" onkeyup="loadEmpleados()">
+            <label for="filter-estado">Estado:</label>
+            <select id="filter-estado" class="form-control d-inline-block w-auto" onchange="loadEmpleados()">
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="descanso">Descanso</option>
+              <option value="licencia">Licencia</option>
+              <option value="baja">Baja</option>
+            </select>
+            <label for="filter-proyecto">Proyecto:</label>
+            <input type="text" id="filter-proyecto" class="form-control d-inline-block w-auto" onkeyup="loadEmpleados()">
+            <button class="btn btn-primary" onclick="loadEmpleados()">Filtrar</button>
+            <button class="btn btn-success ml-2" onclick="exportEmpleadosToExcel()">Exportar a Excel</button>
+            <button class="btn btn-info ml-2" onclick="exportEmpleadosToPDF()">Exportar a PDF</button>
+          </div>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>DNI</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Proyecto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="empleados-body"></tbody>
+          </table>
+          <button class="btn btn-primary mb-3" id="add-empleado-btn">Agregar Empleado</button>
+          <div class="mb-3">
+            <h3>Distribución de Empleados por Estado</h3>
+            <canvas id="empleadosChart" style="max-height: 300px;"></canvas>
+          </div>
+        </div>
 
-      <!-- Tabla de rosters -->
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Fecha Inicio</th>
-            <th>Fecha Fin</th>
-            <th>Proyecto</th>
-            <th>Empleados</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="rosters-body"></tbody>
-      </table>
-      <button class="btn btn-primary mb-3" id="add-roster-btn">Crear Roster</button>
+        <!-- Rosters -->
+        <div class="tab-pane fade" id="rosters" role="tabpanel">
+          <div class="mb-3">
+            <h2>Rosters</h2>
+            <label for="filter-proyecto-roster">Filtrar por Proyecto:</label>
+            <input type="text" id="filter-proyecto-roster" class="form-control d-inline-block w-auto" onkeyup="loadRosters()">
+            <button class="btn btn-primary" onclick="loadRosters()">Filtrar</button>
+            <button class="btn btn-success ml-2" onclick="exportRostersToExcel()">Exportar a Excel</button>
+            <button class="btn btn-info ml-2" onclick="exportRostersToPDF()">Exportar a PDF</button>
+          </div>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Proyecto</th>
+                <th>Empleados</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="rosters-body"></tbody>
+          </table>
+          <button class="btn btn-primary mb-3" id="add-roster-btn">Crear Roster</button>
+          <div class="mb-3">
+            <h3>Rosters por Proyecto</h3>
+            <canvas id="rostersChart" style="max-height: 300px;"></canvas>
+          </div>
+        </div>
 
-      <!-- Gráfico de rosters -->
-      <div class="mb-3">
-        <h3>Rosters por Proyecto</h3>
-        <canvas id="rostersChart" style="max-height: 300px;"></canvas>
+        <!-- Auditoría -->
+        <div class="tab-pane fade" id="audit" role="tabpanel">
+          <h2>Auditoría</h2>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Entidad</th>
+                <th>Acción</th>
+                <th>Usuario</th>
+                <th>Fecha</th>
+                <th>Detalles</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Modal para empleado -->
@@ -200,6 +275,36 @@
         </div>
       </div>
 
+      <!-- Modal para historial de licencias -->
+      <div class="modal fade" id="licenciasModal" tabindex="-1" aria-labelledby="licenciasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="licenciasModalLabel">Historial de Licencias</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Fin</th>
+                    <th>Comentarios</th>
+                  </tr>
+                </thead>
+                <tbody id="licencias-body"></tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Modal para roster -->
       <div class="modal fade" id="rosterModal" tabindex="-1" aria-labelledby="rosterModalTitle" aria-hidden="true">
         <div class="modal-dialog">
@@ -254,6 +359,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
   <script src="rrhh.js"></script>
 </body>
 </html>

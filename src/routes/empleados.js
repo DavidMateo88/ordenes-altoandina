@@ -14,7 +14,7 @@ router.get('/', authMiddleware, async (req, res) => {
   if (proyecto) query.proyecto = new RegExp(proyecto, 'i');
 
   try {
-    const empleados = await Empleado.find(query);
+    const empleados = await Empleado.find(query).populate('auditLog.userId', 'username');
     res.json(empleados);
   } catch (err) {
     console.error('Error al obtener empleados:', err);
@@ -28,7 +28,7 @@ router.get('/licencias', authMiddleware, async (req, res) => {
   try {
     const empleados = await Empleado.find({ licencias: { $exists: true, $ne: [] } });
     const licencias = empleados.flatMap(emp => 
-      emp.licencias.map(lic => ({ empleado: emp._id, ...lic.toObject() }))
+      emp.licencias.map(lic => ({ empleado: emp._id, nombre: emp.nombre, apellido: emp.apellido, ...lic.toObject() }))
     );
     res.json(licencias);
   } catch (err) {
@@ -37,11 +37,27 @@ router.get('/licencias', authMiddleware, async (req, res) => {
   }
 });
 
+// Obtener historial de licencias de un empleado
+router.get('/:id/licencias', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
+  try {
+    const empleado = await Empleado.findById(req.params.id);
+    if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado' });
+    res.json(empleado.licencias);
+  } catch (err) {
+    console.error('Error al obtener licencias del empleado:', err);
+    res.status(500).json({ error: 'Error al obtener licencias del empleado' });
+  }
+});
+
 // Crear empleado
 router.post('/', authMiddleware, async (req, res) => {
   if (req.user.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
   try {
-    const empleado = new Empleado(req.body);
+    const empleado = new Empleado({
+      ...req.body,
+      auditLog: [{ action: 'create', userId: req.user.id, details: 'Empleado creado' }]
+    });
     await empleado.save();
     res.status(201).json(empleado);
   } catch (err) {
@@ -54,7 +70,14 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   if (req.user.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
   try {
-    const empleado = await Empleado.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const empleado = await Empleado.findByIdAndUpdate(
+      req.params.id,
+      { 
+        ...req.body, 
+        $push: { auditLog: { action: 'update', userId: req.user.id, details: 'Empleado actualizado' } }
+      },
+      { new: true }
+    );
     if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado' });
     res.json(empleado);
   } catch (err) {
@@ -67,7 +90,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   if (req.user.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
   try {
-    const empleado = await Empleado.findByIdAndUpdate(req.params.id, { estado: 'baja' }, { new: true });
+    const empleado = await Empleado.findByIdAndUpdate(
+      req.params.id,
+      { 
+        estado: 'baja',
+        $push: { auditLog: { action: 'delete', userId: req.user.id, details: 'Empleado dado de baja' } }
+      },
+      { new: true }
+    );
     if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado' });
     res.json({ message: 'Empleado dado de baja' });
   } catch (err) {
@@ -84,6 +114,7 @@ router.post('/:id/licencia', authMiddleware, async (req, res) => {
     if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado' });
     empleado.licencias.push(req.body);
     empleado.estado = 'licencia';
+    empleado.auditLog.push({ action: 'licencia', userId: req.user.id, details: `Licencia ${req.body.tipo} registrada` });
     await empleado.save();
     res.json(empleado);
   } catch (err) {

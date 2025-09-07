@@ -5,6 +5,7 @@ let currentEmpleados = [];
 let currentRosters = [];
 let empleadosChart = null;
 let rostersChart = null;
+let calendar = null;
 
 // Iniciar sesión
 async function login() {
@@ -36,8 +37,10 @@ async function login() {
     }
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('rrhh-content').style.display = 'block';
+    loadDashboard();
     loadEmpleados();
     loadRosters();
+    loadAuditLog();
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
     alert('Error al iniciar sesión');
@@ -52,8 +55,51 @@ function logout() {
   currentRosters = [];
   if (empleadosChart) empleadosChart.destroy();
   if (rostersChart) rostersChart.destroy();
+  if (calendar) calendar.destroy();
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('rrhh-content').style.display = 'none';
+  document.getElementById('themeToggle').checked = false;
+  document.documentElement.setAttribute('data-theme', 'light');
+}
+
+// Cargar dashboard
+async function loadDashboard() {
+  try {
+    const [empleados, rosters, licencias] = await Promise.all([
+      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('http://localhost:5000/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+    ]);
+
+    const today = new Date();
+    document.getElementById('totalEmpleados').textContent = empleados.length;
+    document.getElementById('rostersActivos').textContent = rosters.filter(r => new Date(r.fecha_inicio) <= today && new Date(r.fecha_fin) >= today).length;
+    document.getElementById('empleadosLicencia').textContent = licencias.filter(l => new Date(l.fecha_inicio) <= today && new Date(l.fecha_fin) >= today).length;
+
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: [
+        ...rosters.map(roster => ({
+          title: roster.nombre,
+          start: roster.fecha_inicio,
+          end: new Date(new Date(roster.fecha_fin).setDate(new Date(roster.fecha_fin).getDate() + 1)),
+          color: '#28a745'
+        })),
+        ...licencias.map(lic => ({
+          title: `Licencia: ${lic.nombre} ${lic.apellido}`,
+          start: lic.fecha_inicio,
+          end: new Date(new Date(lic.fecha_fin).setDate(new Date(lic.fecha_fin).getDate() + 1)),
+          color: '#dc3545'
+        }))
+      ],
+      eventClick: info => alert(`${info.event.title}\nDesde: ${info.event.start.toLocaleDateString('es-ES')}\nHasta: ${info.event.end ? info.event.end.toLocaleDateString('es-ES') : ''}`)
+    });
+    calendar.render();
+  } catch (err) {
+    console.error('Error al cargar dashboard:', err);
+    alert('Error al cargar dashboard');
+  }
 }
 
 // Cargar empleados con filtros
@@ -89,6 +135,7 @@ async function loadEmpleados() {
           <button class="btn btn-sm btn-primary" onclick="showEditEmpleadoModal('${empleado._id}')">Editar</button>
           <button class="btn btn-sm btn-danger" onclick="deleteEmpleado('${empleado._id}')">Baja</button>
           <button class="btn btn-sm btn-info" onclick="showAddLicenciaModal('${empleado._id}')">Licencia</button>
+          <button class="btn btn-sm btn-secondary" onclick="showLicenciasModal('${empleado._id}')">Historial Licencias</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -121,15 +168,8 @@ function renderEmpleadosChart() {
     options: {
       responsive: true,
       plugins: {
-        legend: {
-      position: 'top',
-      labels: {
-        color: 'black' // ✅ Color de las etiquetas de la leyenda
-      }
-    },
-        title: { display: true,
-      text: 'Empleados por Estado',
-      color: 'black' }
+        legend: { position: 'top' },
+        title: { display: true, text: 'Empleados por Estado' }
       }
     }
   });
@@ -154,7 +194,7 @@ function exportEmpleadosToExcel() {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Empleados');
-  XLSX.writeFile(workbook, 'empleados.xlsx');
+  XLSX.write(workbook, 'empleados.xlsx');
 }
 
 // Exportar empleados a PDF
@@ -261,31 +301,11 @@ function renderRostersChart() {
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            color: 'black' // ✅ Letras negras en la leyenda
-          }
-        },
-        title: {
-          display: true,
-          text: 'Rosters por Proyecto',
-          color: 'black' // ✅ Letras negras en el título
-        }
+        legend: { position: 'top' },
+        title: { display: true, text: 'Rosters por Proyecto' }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          precision: 0,
-          ticks: {
-            color: 'black' // ✅ Letras negras en eje Y
-          }
-        },
-        x: {
-          ticks: {
-            color: 'black' // ✅ Letras negras en eje X
-          }
-        }
+        y: { beginAtZero: true, precision: 0 }
       }
     }
   });
@@ -309,7 +329,7 @@ function exportRostersToExcel() {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Rosters');
-  XLSX.writeFile(workbook, 'rosters.xlsx');
+  XLSX.write(workbook, 'rosters.xlsx');
 }
 
 // Exportar rosters a PDF
@@ -345,6 +365,120 @@ function exportRostersToPDF() {
   });
 
   doc.save('rosters.pdf');
+}
+
+// Exportar informe combinado
+async function exportCombinedReport() {
+  try {
+    const [empleados, rosters, licencias] = await Promise.all([
+      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('http://localhost:5000/api/empleados/licencias', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+    ]);
+
+    // Excel
+    const empleadosData = empleados.map(emp => ({
+      Nombre: emp.nombre,
+      Apellido: emp.apellido,
+      DNI: emp.dni,
+      Rol: emp.rol,
+      Estado: emp.estado,
+      Proyecto: emp.proyecto || '',
+      Licencias: emp.licencias.map(l => `${l.tipo} (${new Date(l.fecha_inicio).toLocaleDateString('es-ES')} - ${new Date(l.fecha_fin).toLocaleDateString('es-ES')})`).join('; ')
+    }));
+
+    const rostersData = rosters.map(roster => ({
+      Nombre: roster.nombre,
+      'Fecha Inicio': new Date(roster.fecha_inicio).toLocaleDateString('es-ES'),
+      'Fecha Fin': new Date(roster.fecha_fin).toLocaleDateString('es-ES'),
+      Proyecto: roster.proyecto || '',
+      Empleados: roster.empleados.map(e => `${e.nombre} ${e.apellido}`).join(', ')
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(empleadosData), 'Empleados');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rostersData), 'Rosters');
+    XLSX.write(workbook, 'informe_combinado.xlsx');
+
+    // PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text('Informe Combinado de RRHH', 14, 20);
+
+    doc.text('Empleados', 14, 30);
+    doc.autoTable({
+      head: [['Nombre', 'Apellido', 'DNI', 'Rol', 'Estado', 'Proyecto', 'Licencias']],
+      body: empleadosData.map(emp => [
+        emp.Nombre, emp.Apellido, emp.DNI, emp.Rol, emp.Estado, emp.Proyecto, emp.Licencias
+      ]),
+      startY: 40,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [0, 102, 204] }
+    });
+
+    doc.addPage();
+    doc.text('Rosters', 14, 20);
+    doc.autoTable({
+      head: [['Nombre', 'Fecha Inicio', 'Fecha Fin', 'Proyecto', 'Empleados']],
+      body: rostersData.map(roster => [
+        roster.Nombre, roster['Fecha Inicio'], roster['Fecha Fin'], roster.Proyecto, roster.Empleados
+      ]),
+      startY: 30,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [0, 102, 204] }
+    });
+
+    doc.save('informe_combinado.pdf');
+  } catch (err) {
+    console.error('Error al exportar informe combinado:', err);
+    alert('Error al exportar informe combinado');
+  }
+}
+
+// Cargar log de auditoría
+async function loadAuditLog() {
+  try {
+    const [empleados, rosters] = await Promise.all([
+      fetch('http://localhost:5000/api/empleados', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+      fetch('http://localhost:5000/api/rosters', { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+    ]);
+
+    const auditLogs = [
+      ...empleados.flatMap(emp => emp.auditLog.map(log => ({
+        entidad: `Empleado: ${emp.nombre} ${emp.apellido}`,
+        action: log.action,
+        user: log.userId?.username || 'Desconocido',
+        timestamp: new Date(log.timestamp).toLocaleString('es-ES'),
+        details: log.details
+      }))),
+      ...rosters.flatMap(roster => roster.auditLog.map(log => ({
+        entidad: `Roster: ${roster.nombre}`,
+        action: log.action,
+        user: log.userId?.username || 'Desconocido',
+        timestamp: new Date(log.timestamp).toLocaleString('es-ES'),
+        details: log.details
+      })))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const tbody = document.getElementById('audit-body');
+    tbody.innerHTML = '';
+    auditLogs.forEach(log => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${log.entidad}</td>
+        <td>${log.action}</td>
+        <td>${log.user}</td>
+        <td>${log.timestamp}</td>
+        <td>${log.details}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Error al cargar log de auditoría:', err);
+    alert('Error al cargar log de auditoría');
+  }
 }
 
 // Mostrar modal para agregar empleado
@@ -383,6 +517,38 @@ async function showEditEmpleadoModal(id) {
   }
 }
 
+// Mostrar modal para historial de licencias
+async function showLicenciasModal(id) {
+  try {
+    const response = await fetch(`http://localhost:5000/api/empleados/${id}/licencias`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    console.log('Respuesta al cargar licencias:', response.status, response.statusText);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Error al cargar licencias (Código: ${response.status})`);
+    }
+    const licencias = await response.json();
+    console.log('Licencias cargadas:', licencias);
+    const tbody = document.getElementById('licencias-body');
+    tbody.innerHTML = '';
+    licencias.forEach(lic => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${lic.tipo}</td>
+        <td>${new Date(lic.fecha_inicio).toLocaleDateString('es-ES')}</td>
+        <td>${new Date(lic.fecha_fin).toLocaleDateString('es-ES')}</td>
+        <td>${lic.comentarios || ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    $('#licenciasModal').modal('show');
+  } catch (err) {
+    console.error('Error al cargar licencias:', err);
+    alert(`Error al cargar licencias: ${err.message}`);
+  }
+}
+
 // Guardar empleado
 async function saveEmpleado() {
   const id = document.getElementById('empleadoId').value;
@@ -413,6 +579,7 @@ async function saveEmpleado() {
     }
     $('#empleadoModal').modal('hide');
     loadEmpleados();
+    loadAuditLog();
     alert(id ? 'Empleado actualizado exitosamente' : 'Empleado creado exitosamente');
   } catch (err) {
     console.error('Error al guardar empleado:', err);
@@ -434,6 +601,7 @@ async function deleteEmpleado(id) {
       throw new Error(error.error || `Error al dar de baja empleado (Código: ${response.status})`);
     }
     loadEmpleados();
+    loadAuditLog();
     alert('Empleado dado de baja exitosamente');
   } catch (err) {
     console.error('Error al dar de baja empleado:', err);
@@ -474,6 +642,7 @@ async function saveLicencia() {
     }
     $('#licenciaModal').modal('hide');
     loadEmpleados();
+    loadAuditLog();
     alert('Licencia registrada exitosamente');
   } catch (err) {
     console.error('Error al guardar licencia:', err);
@@ -559,7 +728,6 @@ async function loadEmpleadosSelect(selected = []) {
       }).then(res => res.json());
 
       empleados = empleados.filter(empleado => {
-        // Excluir empleados en licencia durante el período del roster
         const enLicencia = allLicencias.some(licencia => 
           licencia.empleado.toString() === empleado._id.toString() &&
           new Date(licencia.fecha_inicio) <= endDate &&
@@ -570,9 +738,8 @@ async function loadEmpleadosSelect(selected = []) {
           return false;
         }
 
-        // Excluir empleados asignados a rosters superpuestos (excepto el roster actual)
         const enRosterSuperpuesto = allRosters.some(roster => {
-          if (roster._id.toString() === rosterId) return false; // Ignorar el roster actual
+          if (roster._id.toString() === rosterId) return false;
           const rosterStart = new Date(roster.fecha_inicio);
           const rosterEnd = new Date(roster.fecha_fin);
           const isOverlap = 
@@ -669,6 +836,7 @@ async function saveRoster() {
     }
     $('#rosterModal').modal('hide');
     loadRosters();
+    loadAuditLog();
     alert(id ? 'Roster actualizado exitosamente' : 'Roster creado exitosamente');
   } catch (err) {
     console.error('Error al guardar roster:', err);
@@ -690,6 +858,7 @@ async function deleteRoster(id) {
       throw new Error(error.error || `Error al eliminar roster (Código: ${response.status})`);
     }
     loadRosters();
+    loadAuditLog();
     alert('Roster eliminado exitosamente');
   } catch (err) {
     console.error('Error al eliminar roster:', err);
@@ -697,9 +866,20 @@ async function deleteRoster(id) {
   }
 }
 
+// Cambiar tema
+function toggleTheme() {
+  const isDark = document.getElementById('themeToggle').checked;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
   console.log('rrhh.js cargado');
   document.getElementById('add-empleado-btn').addEventListener('click', showAddEmpleadoModal);
   document.getElementById('add-roster-btn').addEventListener('click', showAddRosterModal);
+  // Cargar tema guardado
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeToggle').checked = savedTheme === 'dark';
 });
