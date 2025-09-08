@@ -1,209 +1,241 @@
-/* Estilo general del cuerpo */
+/* 
+ * SECCIÓN 1: VARIABLES GLOBALES Y TEMAS
+ * Aquí definimos variables CSS para colores y temas. Esto permite cambiar fácilmente el estilo sin repetir código.
+ * Soporte para light/dark mode: Usamos :root para defaults y [data-theme="dark"] para overrides.
+ * Incorporamos transparencias (alpha 0.3) para que el fondo de body sea visible a través de contenedores.
+ * Inspirado en Bootstrap's color modes para consistencia.
+ */
+:root {
+  --bg-color: #fff;                          /* Fondo principal (light) - sólido para body si no hay imagen */
+  --text-color: #000;                        /* Texto principal (light) */
+  --card-bg: rgba(242, 244, 247, 0.30);      /* Fondo de tarjetas y contenedores (light con transparencia) */
+  --table-bg: rgba(242, 244, 247, 0.30);     /* Fondo de tablas (light con transparencia) */
+  --table-border: #dee2e6;                   /* Bordes de tablas (light) */
+  --btn-primary-bg: #007bff;                 /* Fondo de botones primarios (light) */
+  --btn-primary-text: #fff;                  /* Texto de botones primarios */
+  --modal-bg: rgba(242, 244, 247, 0.30);     /* Fondo de modales (light con transparencia) */
+  --modal-header-bg: rgba(248, 249, 250, 0.50); /* Header de modales (light con más opacidad para legibilidad) */
+  --transition-time: 0.3s;                   /* Tiempo de transiciones suaves */
+}
+
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;                       /* Fondo principal (dark) - sólido para body si no hay imagen */
+  --text-color: #e0e0e0;                     /* Texto principal (dark) */
+  --card-bg: rgba(44, 44, 44, 0.30);         /* Fondo de tarjetas y contenedores (dark con transparencia) */
+  --table-bg: rgba(44, 44, 44, 0.30);        /* Fondo de tablas (dark con transparencia) */
+  --table-border: #444;                      /* Bordes de tablas (dark) */
+  --btn-primary-bg: #0056b3;                 /* Fondo de botones primarios (dark) */
+  --btn-primary-text: #e0e0e0;               /* Texto de botones primarios (dark) */
+  --modal-bg: rgba(44, 44, 44, 0.30);        /* Fondo de modales (dark con transparencia) */
+  --modal-header-bg: rgba(58, 58, 58, 0.50); /* Header de modales (dark con más opacidad para legibilidad) */
+}
+
+
+/* 
+ * SECCIÓN 2: ESTILOS GENERALES DEL CUERPO Y CONTENEDOR
+ * Configuración base del body, incluyendo fondo con imagen y transiciones.
+ * El fondo se ajusta para no interferir en dark mode (opacidad reducida).
+ */
 body {
   font-family: Arial, sans-serif;
   margin: 20px;
   background-image: linear-gradient(rgba(5, 7, 12, 0.50), rgba(5, 7, 12, 0.50)),
-   url("https://altoandina.com.ar/wp-content/uploads/2019/04/AltoAndina-1.jpg");
+    url("https://altoandina.com.ar/wp-content/uploads/2019/04/AltoAndina-1.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
-}
-/* public/styles.css */
-#rrhh-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+  background-color: var(--bg-color); /* Fondo base para temas */
+  color: var(--text-color);          /* Color de texto base */
+  transition: background-color var(--transition-time), color var(--transition-time);
 }
 
 .container {
   position: relative;
-  padding-top: 50px; /* Espacio para el botón */
+  padding-top: 50px; /* Espacio para botones fijos como #rrhh-button */
+  max-width: 1200px; /* Ancho máximo para responsividad */
+  margin: 0 auto;
 }
 
-/* Ajustes para evitar superposiciones */
-#app {
-  margin-top: 20px;
-}
+/* 
+ * SECCIÓN 3: ESTILOS PARA COMPONENTES ESPECÍFICOS
+ * Estilos para encabezados, formularios, tablas, botones, etc.
+ * Usamos variables para consistencia entre temas.
+ */
 
-/* Estilos para encabezados */
+/* Encabezados */
 h1, h2, h3 {
-  color: #000000;
+  color: var(--text-color);
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-/* Contenedores principales */
+/* Contenedores principales (login, formularios, etc.) */
 #login-form, #orden-form, #cotizar-form, #move-stock, #empleadosChart, #rostersChart, #rrhh-content, #items-table, #gestion-depositos, #stock-report, #ordenes-controls {
   margin-bottom: 20px;
   padding: 20px;
-  border: 1px solid #000000;
+  border: 1px solid var(--table-border);
   border-radius: 5px;
-  background: rgba(242, 244, 247, 0.30);
+  background: var(--card-bg);
+  transition: background var(--transition-time), border-color var(--transition-time);
 }
 
-/* Estilo para filas de ítems y facturas */
+/* Filas de ítems y facturas */
 .item-row, .factura-input {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
+  flex-wrap: wrap; /* Mejora responsividad en pantallas pequeñas */
 }
 
 /* Inputs dentro de filas */
 .item-row input, .factura-input input {
   flex: 1;
+  padding: 8px;
+  border: 1px solid var(--table-border);
+  border-radius: 5px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 /* Contenedores de órdenes y depósitos */
 #ordenes-container .orden, #depositos-container .deposito {
-  border: 1px solid #000000;
+  border: 1px solid var(--table-border);
   padding: 10px;
   margin-bottom: 10px;
   border-radius: 5px;
-  background: rgba(242, 244, 247, 0.30);
+  background: var(--card-bg);
 }
 
 /* Contenedor de stock */
 #stock-deposito-container {
   margin-top: 20px;
-  background: rgba(242, 244, 247, 0.30);
+  background: var(--card-bg);
 }
 
 /* Elementos de stock */
 #stock-items div {
   padding: 5px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--table-border);
 }
 
-/* Estilo para botones */
+/* Botones generales */
 button {
   padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  transition: background-color var(--transition-time);
 }
 
-/* Efecto hover para botones */
 button:hover {
-  background-color: #0056b3;
+  background-color: darken(var(--btn-primary-bg), 10%); /* Mejora estética: oscurece al hover */
 }
 
-/* Estilo para inputs, selects y textareas */
+/* Inputs, selects y textareas */
 input, select, textarea {
   padding: 8px;
   margin: 5px 0;
-  border: 1px solid #ccc;
+  border: 1px solid var(--table-border);
   border-radius: 5px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color var(--transition-time), border-color var(--transition-time);
 }
 
-/* Estilo para select de estados (múltiple) */
+/* Select de estados (múltiple) */
 #filtro-estado {
   width: 200px;
   height: 200px; /* Altura para mostrar todas las opciones */
 }
 
-/* Estilo para select de proyectos */
+/* Select de proyectos */
 #proyectos-select {
   width: 300px;
   margin-top: 10px;
 }
 
-/* Estilo para botones en controles de órdenes */
-#ordenes-controls button {
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin: 5px;
+/* Filtros (mb-3) */
+.mb-3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* Efecto hover para botones en controles de órdenes */
-#ordenes-controls button:hover {
-  background-color: #0056b3;
-}
-#orden-form select {
-  padding: 8px;
-  margin-bottom: 10px;
-  width: 100%;
-  max-width: 300px; /* Ajusta según tu diseño */
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-/* public/styles.css */
-:root {
-  --bg-color: #fff;
-  --text-color: #000;
-  --card-bg: #f8f9fa;
-  --table-bg: #fff;
-  --table-border: #dee2e6;
-  --btn-primary-bg: #007bff;
-  --btn-primary-text: #fff;
-  --modal-bg: #fff;
-  --modal-header-bg: #f8f9fa;
-}
-
-[data-theme="dark"] {
-  --bg-color: #1a1a1a;
-  --text-color: #e0e0e0;
-  --card-bg: #2c2c2c;
-  --table-bg: #2c2c2c;
-  --table-border: #444;
-  --btn-primary-bg: #0056b3;
-  --btn-primary-text: #e0e0e0;
-  --modal-bg: #2c2c2c;
-  --modal-header-bg: #3a3a3a;
-}
-
-body {
-  background-color: var(--bg-color);
+.mb-3 label {
+  margin-bottom: 0;
   color: var(--text-color);
-  transition: background-color 0.3s, color 0.3s;
 }
 
-.container {
-  padding-top: 20px;
-}
-
-#rrhh-content {
-  margin-top: 20px;
-}
-
-h1, h2, h3 {
+/* Tablas */
+.table {
+  background-color: var(--table-bg);
+  color: var(--text-color);
   margin-bottom: 20px;
-  text-align: center;
 }
 
-/* Estilos para el formulario de login */
-#login-form {
-  max-width: 400px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid var(--table-border);
-  border-radius: 5px;
+.table th, .table td {
+  vertical-align: middle;
+  border-color: var(--table-border);
+}
+
+.table thead th {
   background-color: var(--card-bg);
-}
-
-#login-form input {
-  margin-bottom: 10px;
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--table-border);
-  border-radius: 4px;
-  background-color: var(--bg-color);
   color: var(--text-color);
 }
 
-#login-form button {
-  width: 100%;
-  padding: 10px;
+/* Botones pequeños */
+.btn-sm {
+  padding: 5px 10px;
   background-color: var(--btn-primary-bg);
   color: var(--btn-primary-text);
 }
 
-/* Estilos para el interruptor de tema */
+/* Gráficos (canvas) */
+canvas {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Modales */
+.modal-content {
+  background-color: var(--modal-bg);
+  color: var(--text-color);
+}
+
+.modal-header {
+  background-color: var(--modal-header-bg);
+  border-bottom: 1px solid var(--table-border);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--table-border);
+}
+
+.modal-content input, .modal-content select, .modal-content textarea {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border-color: var(--table-border);
+}
+
+/* Pestañas (nav-tabs de Bootstrap) */
+.nav-tabs {
+  margin-bottom: 20px;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-color);
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--card-bg);
+  border-color: var(--table-border);
+  color: var(--text-color);
+}
+
+/* Interruptor de tema */
 .switch {
   position: relative;
   display: inline-block;
@@ -226,7 +258,7 @@ h1, h2, h3 {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  transition: 0.3s;
+  transition: var(--transition-time);
   border-radius: 20px;
 }
 
@@ -238,7 +270,7 @@ h1, h2, h3 {
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: 0.3s;
+  transition: var(--transition-time);
   border-radius: 50%;
 }
 
@@ -250,123 +282,18 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-/* Estilos para las pestañas */
-.nav-tabs {
-  margin-bottom: 20px;
+/* Botón fijo de RRHH */
+#rrhh-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
 }
 
-.nav-tabs .nav-link {
-  color: var(--text-color);
-}
-
-.nav-tabs .nav-link.active {
-  background-color: var(--card-bg);
-  border-color: var(--table-border);
-  color: var(--text-color);
-}
-
-/* Estilos para el dashboard */
-.card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--table-border);
-  margin-bottom: 20px;
-}
-
-.card-title {
-  color: var(--text-color);
-}
-
-.card-text {
-  font-size: 1.5rem;
-  color: var(--text-color);
-}
-
-#calendar {
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: var(--card-bg);
-  padding: 10px;
-  border-radius: 5px;
-}
-
-/* Estilos para los filtros */
-.mb-3 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.mb-3 label {
-  margin-bottom: 0;
-  color: var(--text-color);
-}
-
-.mb-3 input, .mb-3 select {
-  padding: 8px;
-  border: 1px solid var(--table-border);
-  border-radius: 4px;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-}
-
-.mb-3 button {
-  padding: 8px 12px;
-  background-color: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-}
-
-/* Estilos para las tablas */
-.table {
-  background-color: var(--table-bg);
-  color: var(--text-color);
-  margin-bottom: 20px;
-}
-
-.table th, .table td {
-  vertical-align: middle;
-  border-color: var(--table-border);
-}
-
-.table thead th {
-  background-color: var(--card-bg);
-  color: var(--text-color);
-}
-
-.btn-sm {
-  padding: 5px 10px;
-  background-color: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-}
-
-/* Estilos para los gráficos */
-canvas {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* Estilos para los modales */
-.modal-content {
-  background-color: var(--modal-bg);
-  color: var(--text-color);
-}
-
-.modal-header {
-  background-color: var(--modal-header-bg);
-  border-bottom: 1px solid var(--table-border);
-}
-
-.modal-footer {
-  border-top: 1px solid var(--table-border);
-}
-
-.modal-content input, .modal-content select, .modal-content textarea {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  border-color: var(--table-border);
-}
-
-/* Estilos responsivos */
+/* 
+ * SECCIÓN 4: ESTILOS RESPONSIVOS
+ * Ajustes para pantallas pequeñas (mobile-first).
+ */
 @media (max-width: 768px) {
   .mb-3 {
     flex-direction: column;
@@ -383,5 +310,21 @@ canvas {
 
   #calendar {
     max-width: 100%;
+  }
+}
+
+/* 
+ * SECCIÓN 5: ESTILOS PARA IMPRESIÓN
+ * Asegura que el dark mode no interfiera en impresiones (imprime en light mode).
+ */
+@media print {
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+
+  .card, .table, .modal-content {
+    background-color: #fff !important;
+    border-color: #dee2e6 !important;
   }
 }

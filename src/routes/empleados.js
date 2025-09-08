@@ -122,5 +122,21 @@ router.post('/:id/licencia', authMiddleware, async (req, res) => {
     res.status(400).json({ error: 'Error al registrar licencia' });
   }
 });
+// Obtener un empleado por ID
+router.get('/:id', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'Gerente') return res.status(403).json({ error: 'Acceso denegado' });
+
+  try {
+    const empleado = await Empleado.findById(req.params.id).populate('auditLog.userId', 'username');
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado' }); // Devuelve JSON en caso de 404
+    }
+    res.json(empleado);
+  } catch (err) {
+    console.error('Error al obtener empleado:', err);
+    res.status(500).json({ error: 'Error al obtener empleado' });
+  }
+});
+
 
 module.exports = router;

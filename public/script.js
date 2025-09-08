@@ -1,13 +1,18 @@
+// Variables globales
 let token = null;
 let role = null;
 let currentOrdenId = null;
 let showFinalizadas = true;
 
-document.addEventListener('DOMContentLoaded', () => {
-  // No cargar productos automáticamente al inicio
-});
+// Función para cambiar pestañas manualmente si es necesario (Bootstrap maneja la mayoría, pero útil para overrides)
+function openTab(tabName) {
+  const tabLink = document.querySelector(`[href="#${tabName}"]`);
+  if (tabLink) {
+    new bootstrap.Tab(tabLink).show(); // Usa Bootstrap's JS para mostrar la tab
+  }
+}
 
-// Iniciar sesión
+// Iniciar sesión (ajustado para mostrar tabs por rol)
 async function login() {
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
@@ -18,7 +23,7 @@ async function login() {
   }
 
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/auth/login', {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -32,18 +37,36 @@ async function login() {
     role = data.role;
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+
+    // Nueva lógica: Mostrar tabs y secciones basadas en rol
+    const ordenesTab = document.querySelector('[href="#ordenes"]').parentElement;
+    const cotizacionesTab = document.querySelector('[href="#cotizaciones"]').parentElement;
+    const stockTab = document.querySelector('[href="#stock"]').parentElement;
+    const gestionTab = document.querySelector('[href="#gestion"]').parentElement;
+
+    ordenesTab.style.display = 'block'; // Siempre visible
+    cotizacionesTab.style.display = 'none';
+    stockTab.style.display = 'none';
+    gestionTab.style.display = 'none';
+
     if (role === 'Solicitante') {
       document.getElementById('orden-form').style.display = 'block';
       loadDepositos();
-      loadProyectosForOrdenForm(); // Cargar proyectos para el formulario
+      loadProyectosForOrdenForm();
       loadOrdenes();
+      openTab('ordenes'); // Abre la tab de Órdenes por defecto
     } else if (role === 'Cotizador') {
-  document.getElementById('cotizar-form').style.display = 'block';
-  document.getElementById('items-list').style.display = 'block';
-  loadOrdenes();
-  loadItemsForCotizador();
-  loadProyectosForFilter(); // Cargar proyectos para el filtro
+      cotizacionesTab.style.display = 'block';
+      document.getElementById('cotizar-form').style.display = 'block';
+      document.getElementById('items-list').style.display = 'block';
+      loadOrdenes();
+      loadItemsForCotizador();
+      loadProyectosForFilter();
+      openTab('cotizaciones'); // Abre Cotizaciones por defecto
     } else if (role === 'Gerente') {
+      cotizacionesTab.style.display = 'block';
+      stockTab.style.display = 'block';
+      gestionTab.style.display = 'block';
       document.getElementById('ordenes-controls').style.display = 'block';
       document.getElementById('move-stock').style.display = 'block';
       document.getElementById('gestion-depositos').style.display = 'block';
@@ -52,23 +75,63 @@ async function login() {
       loadDepositos();
       loadOrdenes();
       loadDepositosForGestion();
-      loadProyectosForGestion(); // Cargar proyectos para gestión
+      loadProyectosForGestion();
       loadProyectosForFilter();
       loadProductosSugeridos();
+      openTab('ordenes'); // Abre Órdenes por defecto para gerentes
     }
-    document.getElementById('filtro-estado').addEventListener('change', loadOrdenes);
-    document.getElementById('filtro-proyecto').addEventListener('change', loadOrdenes);
-    document.getElementById('ordenar-por').addEventListener('change', loadOrdenes);
+
+    // Eventos para filtros (mantenidos)
+    document.getElementById('filtro-estado')?.addEventListener('change', loadOrdenes);
+    document.getElementById('filtro-proyecto')?.addEventListener('change', loadOrdenes);
+    document.getElementById('ordenar-por')?.addEventListener('change', loadOrdenes);
+
+    // Verificar acceso a RRHH (mantenido)
+    checkRRHHAccess();
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
     alert('Error al iniciar sesión');
   }
 }
 
+// Función para toggle de tema (copiada/adaptada de rrhh.js)
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', currentTheme === 'light' ? 'dark' : 'light');
+  // Si tienes estilos en styles.css para dark mode, se aplicarán automáticamente
+}
+
+// Logout (ajustado para resetear tabs)
+function logout() {
+  token = null;
+  role = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  // Resetear visibilidad de tabs
+  document.querySelectorAll('.nav-item').forEach(tab => tab.style.display = 'none');
+}
+
+// Eventos para recargar datos al cambiar de tab
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('shown.bs.tab', (event) => {
+    const tabId = event.target.getAttribute('href').substring(1);
+    if (tabId === 'ordenes') loadOrdenes();
+    if (tabId === 'cotizaciones') loadItemsForCotizador();
+    if (tabId === 'stock') {
+      // Puedes agregar recargas específicas, ej. loadStockDeposito si aplica
+    }
+    if (tabId === 'gestion') {
+      loadDepositosForGestion();
+      loadProyectosForGestion();
+    }
+  });
+});
+
 // Cargar depósitos
 async function loadDepositos() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -114,7 +177,7 @@ function handleDepositoChange() {
 async function loadProductosSugeridos() {
   if (!token || role !== 'Gerente') return;
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/stock/productos', {
+    const response = await fetch('http://localhost:5000/api/stock/productos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -153,7 +216,7 @@ async function loadProductosSugeridos() {
 // Cargar stock de un depósito
 async function loadStockDeposito(depositoId) {
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/stock/deposito/${depositoId}`, {
+    const response = await fetch(`http://localhost:5000/api/stock/deposito/${depositoId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -161,7 +224,6 @@ async function loadStockDeposito(depositoId) {
       throw new Error(error.error || 'Error al cargar stock');
     }
     const stock = await response.json();
-    //console.log('Stock cargado para depósito', depositoId, ':', stock); // Log para depuración
     const container = document.getElementById('stock-deposito-container');
     if (!container) {
       console.error('Contenedor stock-deposito-container no encontrado en el DOM');
@@ -233,7 +295,7 @@ function renderStock(stock) {
 // Cargar proyectos para filtro
 async function loadProyectosForFilter() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
+    const response = await fetch('http://localhost:5000/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -261,10 +323,11 @@ async function loadProyectosForFilter() {
     alert('Error al cargar proyectos');
   }
 }
+
 // CARGAR PROYECTOS ORDENES
 async function loadProyectosForOrdenForm() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
+    const response = await fetch('http://localhost:5000/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -292,7 +355,7 @@ async function loadProyectosForOrdenForm() {
 // Cargar proyectos para gestión (Gerente)
 async function loadProyectosForGestion() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
+    const response = await fetch('http://localhost:5000/api/proyectos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -323,35 +386,35 @@ async function loadProyectosForGestion() {
 
 // Crear proyecto
 async function createProyecto() {
- const nombre = document.getElementById('nuevo-proyecto-nombre').value.trim();
+  const nombre = document.getElementById('nuevo-proyecto-nombre').value.trim();
 
- if (!nombre) {
- alert('Por favor, ingresa un nombre para el proyecto.');
- return;
- }
+  if (!nombre) {
+    alert('Por favor, ingresa un nombre para el proyecto.');
+    return;
+  }
 
- try {
- const response = await fetch('https://ordenes-altoandina.onrender.com/api/proyectos', {
- method: 'POST',
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': `Bearer ${token}`
- },
- body: JSON.stringify({ nombre })
- });
- const data = await response.json();
- if (data.error) {
- console.error('Error al crear proyecto:', data.error);
- alert(data.error);
- return;
- }
- alert('Proyecto creado exitosamente');
- document.getElementById('nuevo-proyecto-nombre').value = '';
- loadProyectosForGestion();
- } catch (err) {
- console.error('Error al crear proyecto:', err);
- alert('Error al crear proyecto');
- }
+  try {
+    const response = await fetch('http://localhost:5000/api/proyectos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ nombre })
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('Error al crear proyecto:', data.error);
+      alert(data.error);
+      return;
+    }
+    alert('Proyecto creado exitosamente');
+    document.getElementById('nuevo-proyecto-nombre').value = '';
+    loadProyectosForGestion();
+  } catch (err) {
+    console.error('Error al crear proyecto:', err);
+    alert('Error al crear proyecto');
+  }
 }
 
 // Preparar edición de proyecto
@@ -371,39 +434,39 @@ function prepareEditProyecto() {
 
 // Editar proyecto
 async function editProyecto() {
- const id = document.getElementById('proyecto-id').value;
- const nombre = document.getElementById('nuevo-proyecto-nombre').value.trim();
+  const id = document.getElementById('proyecto-id').value;
+  const nombre = document.getElementById('nuevo-proyecto-nombre').value.trim();
 
- if (!nombre) {
- alert('Por favor, ingresa un nombre para el proyecto.');
- return;
- }
+  if (!nombre) {
+    alert('Por favor, ingresa un nombre para el proyecto.');
+    return;
+  }
 
- try {
- const response = await fetch(`https://ordenes-altoandina.onrender.com/api/proyectos/${id}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': `Bearer ${token}`
- },
- body: JSON.stringify({ nombre })
- });
- const data = await response.json();
- if (data.error) {
- console.error('Error al actualizar proyecto:', data.error);
- alert(data.error);
- return;
- }
- alert('Proyecto actualizado exitosamente');
- document.getElementById('nuevo-proyecto-nombre').value = '';
- document.getElementById('proyecto-id').value = '';
- document.getElementById('create-proyecto').style.display = 'inline';
- document.getElementById('save-proyecto').style.display = 'none';
- loadProyectosForGestion();
- } catch (err) {
- console.error('Error al actualizar proyecto:', err);
- alert('Error al actualizar proyecto');
- }
+  try {
+    const response = await fetch(`http://localhost:5000/api/proyectos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ nombre })
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('Error al actualizar proyecto:', data.error);
+      alert(data.error);
+      return;
+    }
+    alert('Proyecto actualizado exitosamente');
+    document.getElementById('nuevo-proyecto-nombre').value = '';
+    document.getElementById('proyecto-id').value = '';
+    document.getElementById('create-proyecto').style.display = 'inline';
+    document.getElementById('save-proyecto').style.display = 'none';
+    loadProyectosForGestion();
+  } catch (err) {
+    console.error('Error al actualizar proyecto:', err);
+    alert('Error al actualizar proyecto');
+  }
 }
 
 // Eliminar proyecto
@@ -417,7 +480,7 @@ async function deleteProyecto() {
   if (!confirm('¿Estás seguro de eliminar este proyecto? Asegúrate de que no esté asociado a órdenes activas.')) return;
 
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/proyectos/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/proyectos/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -439,7 +502,7 @@ async function loadOrdenes() {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const ordenes = await response.json();
@@ -507,10 +570,11 @@ async function loadOrdenes() {
     alert('Error al cargar órdenes');
   }
 }
-//LISTA COTIZADOR
+
+// LISTA COTIZADOR
 async function loadItemsForCotizador() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
+    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -643,7 +707,7 @@ function createOrden() {
     return;
   }
 
-  fetch('https://ordenes-altoandina.onrender.com/api/ordenes', {
+  fetch('http://localhost:5000/api/ordenes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -671,7 +735,7 @@ function createOrden() {
 // Editar orden
 async function editOrden(id) {
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const orden = await response.json();
@@ -734,7 +798,7 @@ function saveOrden() {
     return;
   }
 
-  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
+  fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -763,7 +827,7 @@ function saveOrden() {
 async function cotizarOrden(id) {
   document.getElementById('cotizar-form').style.display = 'block';
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -839,7 +903,7 @@ function saveCotizacion() {
     return;
   }
 
-  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/cotizar/${currentOrdenId}`, {
+  fetch(`http://localhost:5000/api/ordenes/cotizar/${currentOrdenId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -857,9 +921,9 @@ function saveCotizacion() {
       alert('Cotización guardada exitosamente');
       document.getElementById('cotizar-form').style.display = 'none';
       // Al final de saveCotizacion, antes de loadOrdenes()
-if (role === 'Cotizador') {
-  loadItemsForCotizador();
-}
+      if (role === 'Cotizador') {
+        loadItemsForCotizador();
+      }
       loadOrdenes();
     })
     .catch(err => {
@@ -899,7 +963,7 @@ async function uploadFacturas() {
 
   try {
     // Obtener la orden para enviar sus ítems
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${currentOrdenId}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${currentOrdenId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -912,7 +976,7 @@ async function uploadFacturas() {
     console.log('Ítems enviados:', items); // Log adicional
 
     // Enviar facturas e ítems al backend
-    const updateResponse = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/factura/${currentOrdenId}`, {
+    const updateResponse = await fetch(`http://localhost:5000/api/ordenes/factura/${currentOrdenId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -933,9 +997,9 @@ async function uploadFacturas() {
     document.getElementById('factura-form').style.display = 'none';
     currentOrdenId = null;
     // Al final de uploadFacturas, antes de loadOrdenes()
-if (role === 'Cotizador') {
-  loadItemsForCotizador();
-}
+    if (role === 'Cotizador') {
+      loadItemsForCotizador();
+    }
     loadOrdenes();
     // Recargar el stock para reflejar los cambios
     const depositoId = orden.deposito?._id;
@@ -955,8 +1019,7 @@ function rejectOrden(id) {
     alert('Por favor, proporciona una razón para el rechazo.');
     return;
   }
-
-  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/rechazar/${id}`, {
+  fetch(`http://localhost:5000/api/ordenes/rechazar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -982,7 +1045,7 @@ function rejectOrden(id) {
 
 // Aprobar orden
 function approveOrden(id) {
-  fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/aprobar/${id}`, {
+  fetch(`http://localhost:5000/api/ordenes/aprobar/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -1008,7 +1071,7 @@ function approveOrden(id) {
 // Generar PDF de orden
 async function generatePDF(id) {
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/reportes/orden/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/reportes/orden/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1034,7 +1097,7 @@ async function generatePDF(id) {
 
 async function generateExcel(id) {
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1093,7 +1156,7 @@ async function generateAllOrdersExcel() {
     const estado = document.getElementById('filtro-estado')?.value || '';
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1137,10 +1200,11 @@ async function generateAllOrdersExcel() {
     alert(`Error al generar Excel: ${err.message}`);
   }
 }
+
 // Generar PDF de stock
 async function generateStockPDF() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/reportes/stock', {
+    const response = await fetch('http://localhost:5000/api/reportes/stock', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -1175,7 +1239,7 @@ async function createDeposito() {
   }
 
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1203,7 +1267,7 @@ async function createDeposito() {
 // Cargar depósitos para gestión
 async function loadDepositosForGestion() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos', {
+    const response = await fetch('http://localhost:5000/api/depositos', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const depositos = await response.json();
@@ -1228,7 +1292,7 @@ async function loadDepositosForGestion() {
 // Eliminar depósito
 function deleteDeposito(id) {
   if (!confirm('¿Estás seguro de eliminar este depósito?')) return;
-  fetch(`https://ordenes-altoandina.onrender.com/api/depositos/${id}`, {
+  fetch(`http://localhost:5000/api/depositos/${id}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   })
@@ -1262,7 +1326,7 @@ async function moveStock() {
   }
 
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/depositos/mover-stock', {
+    const response = await fetch('http://localhost:5000/api/depositos/mover-stock', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1321,7 +1385,7 @@ async function deleteOrden(id) {
   if (!confirm('¿Estás seguro de que deseas eliminar esta orden?')) return;
 
   try {
-    const response = await fetch(`https://ordenes-altoandina.onrender.com/api/ordenes/${id}`, {
+    const response = await fetch(`http://localhost:5000/api/ordenes/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -1339,51 +1403,10 @@ async function deleteOrden(id) {
   }
 }
 
-// Cargar productos al iniciar la sección de mover stock (solo para Gerente después de login)
-
-
-// Cargar productos para sugerencias
-async function loadProductosSugeridos() {
-  if (!token || role !== 'Gerente') return; // Solo cargar si hay token y el usuario es Gerente
-  try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/stock/productos', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-    const productos = await response.json();
-    if (!Array.isArray(productos)) {
-      throw new Error('La respuesta del servidor no es un array');
-    }
-    const datalist = document.getElementById('productos-sugeridos');
-    datalist.innerHTML = '';
-    productos.sort((a, b) => a.localeCompare(b)).forEach(producto => {
-      const option = document.createElement('option');
-      option.value = producto;
-      datalist.appendChild(option);
-    });
-    document.getElementById('producto').addEventListener('input', () => {
-      const input = document.getElementById('producto').value.toLowerCase();
-      const filtered = productos
-        .filter(p => p.toLowerCase().includes(input))
-        .sort((a, b) => a.localeCompare(b));
-      datalist.innerHTML = '';
-      filtered.forEach(producto => {
-        const option = document.createElement('option');
-        option.value = producto;
-        datalist.appendChild(option);
-      });
-    });
-  } catch (err) {
-    console.error('Error al cargar productos:', err);
-    alert('Error al cargar productos');
-  }
-}
-//FUNCION EXCEL TBLA ITEMS
+// FUNCION EXCEL TBLA ITEMS
 async function generateItemsExcel() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
+    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1457,10 +1480,11 @@ async function generateItemsExcel() {
     alert(`Error al generar Excel: ${err.message}`);
   }
 }
+
 // GENERAR PDF LISTA ITEMS
 async function generateItemsPDF() {
   try {
-    const response = await fetch('https://ordenes-altoandina.onrender.com/api/ordenes?estado=', {
+    const response = await fetch('http://localhost:5000/api/ordenes?estado=', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -1538,7 +1562,8 @@ async function generateItemsPDF() {
     alert(`Error al generar PDF: ${err.message}`);
   }
 }
-//FUNCION BOTON RRHH
+
+// FUNCION BOTON RRHH
 function checkRRHHAccess() {
   console.log('Verificando acceso RRHH:', { role });
   if (role === 'Gerente') {
