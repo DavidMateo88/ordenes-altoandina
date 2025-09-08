@@ -800,47 +800,57 @@ async function loadEmpleadosSelect(selected = []) {
 }
 
 // Guardar roster
+// Guardar roster
 async function saveRoster() {
   const id = document.getElementById('rosterId').value;
+  const nombre = document.getElementById('rosterNombre').value;
   const fechaInicio = document.getElementById('rosterFechaInicio').value;
   const fechaFin = document.getElementById('rosterFechaFin').value;
-  if (new Date(fechaFin) <= new Date(fechaInicio)) {
-    alert('La fecha de fin debe ser posterior a la fecha de inicio.');
+  const proyecto = document.getElementById('rosterProyecto').value;
+  const empleados = $('#rosterEmpleados').val() || [];
+
+  if (!nombre || !fechaInicio || !fechaFin) {
+    alert('Por favor, completa todos los campos requeridos.');
     return;
   }
-  const roster = {
-    nombre: document.getElementById('rosterNombre').value,
-    fecha_inicio: fechaInicio,
-    fecha_fin: fechaFin,
-    proyecto: document.getElementById('rosterProyecto').value || undefined,
-    empleados: Array.from(document.getElementById('rosterEmpleados').selectedOptions).map(option => option.value)
-  };
 
-  console.log('Guardando roster:', roster);
+  const url = id ? `/api/rosters/${id}` : '/api/rosters';
+  const method = id ? 'PUT' : 'POST';
 
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `http://localhost:5000/api/rosters/${id}` : 'http://localhost:5000/api/rosters';
     const response = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(roster)
+      body: JSON.stringify({ nombre, fechaInicio, fechaFin, proyecto, empleados })
     });
-    console.log('Respuesta al guardar roster:', response.status, response.statusText);
+
+    console.log('Respuesta del servidor al guardar roster:', response.status, response.statusText);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Error al guardar roster (Código: ${response.status})`);
+      let errorMessage = 'Error desconocido';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || 'Error al procesar la respuesta';
+      } catch (jsonErr) {
+        // Si no es JSON, lee como texto (ej. error HTML)
+        const errorText = await response.text();
+        errorMessage = `Error del servidor: ${errorText}`;
+        console.error('Respuesta no JSON:', errorText);
+      }
+      alert(errorMessage);
+      return;
     }
+
+    const roster = await response.json();
+    alert(id ? 'Roster actualizado' : 'Roster creado');
     $('#rosterModal').modal('hide');
     loadRosters();
-    loadAuditLog();
-    alert(id ? 'Roster actualizado exitosamente' : 'Roster creado exitosamente');
   } catch (err) {
     console.error('Error al guardar roster:', err);
-    alert(`Error al guardar roster: ${err.message}`);
+    alert('Error de conexión al guardar roster. Verifica el servidor.');
   }
 }
 

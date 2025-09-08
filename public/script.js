@@ -3,6 +3,8 @@ let token = null;
 let role = null;
 let currentOrdenId = null;
 let showFinalizadas = true;
+let hideFinalizadasSolicitante = true; // Default: Oculta finalizadas para Solicitante
+
 
 // Función para cambiar pestañas manualmente si es necesario (Bootstrap maneja la mayoría, pero útil para overrides)
 function openTab(tabName) {
@@ -51,18 +53,21 @@ async function login() {
 
     if (role === 'Solicitante') {
       document.getElementById('orden-form').style.display = 'block';
+      document.getElementById('ordenes-controls').style.display = 'block';
+      document.getElementById('toggle-finalizadas-solicitante').style.display = 'block'; // Muestra el nuevo toggle
       loadDepositos();
       loadProyectosForOrdenForm();
       loadOrdenes();
-      openTab('ordenes'); // Abre la tab de Órdenes por defecto
+      openTab('ordenes');
     } else if (role === 'Cotizador') {
       cotizacionesTab.style.display = 'block';
       document.getElementById('cotizar-form').style.display = 'block';
       document.getElementById('items-list').style.display = 'block';
+      document.getElementById('factura-form').style.display = 'block'; // Si aplica
       loadOrdenes();
       loadItemsForCotizador();
       loadProyectosForFilter();
-      openTab('cotizaciones'); // Abre Cotizaciones por defecto
+      openTab('cotizaciones');
     } else if (role === 'Gerente') {
       cotizacionesTab.style.display = 'block';
       stockTab.style.display = 'block';
@@ -78,7 +83,7 @@ async function login() {
       loadProyectosForGestion();
       loadProyectosForFilter();
       loadProductosSugeridos();
-      openTab('ordenes'); // Abre Órdenes por defecto para gerentes
+      openTab('ordenes');
     }
 
     // Eventos para filtros (mantenidos)
@@ -93,6 +98,16 @@ async function login() {
     alert('Error al iniciar sesión');
   }
 }
+
+// ... (final de login())
+
+// Nueva función para toggle de finalizadas en Solicitante
+function toggleFinalizadasSolicitante() {
+  hideFinalizadasSolicitante = !hideFinalizadasSolicitante;
+  loadOrdenes(); // Recarga las órdenes al cambiar el toggle
+}
+
+// ... (resto del script.js)
 
 // Función para toggle de tema (copiada/adaptada de rrhh.js)
 function toggleTheme() {
@@ -499,75 +514,110 @@ async function deleteProyecto() {
 // Cargar órdenes
 async function loadOrdenes() {
   try {
-    const estado = document.getElementById('filtro-estado')?.value || '';
+    let estado = document.getElementById('filtro-estado')?.value || 'Todas'; // Default a 'Todas' si no hay valor
     const proyecto = document.getElementById('filtro-proyecto')?.value || '';
     const ordenarPor = document.getElementById('ordenar-por')?.value || 'fecha';
+
+    // Manejo especial para filtros
+    if (estado === 'Todas') {
+      estado = ''; // Envía vacío para obtener todas
+    } else if (estado === 'Ocultar todas') {
+      const container = document.getElementById('ordenes-container');
+      container.innerHTML = '<p>No se muestran órdenes (filtro "Ocultar todas" aplicado).</p>';
+      return; // No hace fetch
+    }
+
     const response = await fetch(`http://localhost:5000/api/ordenes?estado=${estado}&proyecto=${proyecto}&ordenarPor=${ordenarPor}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const ordenes = await response.json();
-    const container = document.getElementById('ordenes-container');
-    container.innerHTML = '';
-    ordenes
-      .filter(orden => {
-        // Para Cotizador, excluir siempre órdenes completadas
-        if (role === 'Cotizador') {
-          return orden.estado !== 'Completada';
-        }
-        // Para Gerente, respetar showFinalizadas
-        return role === 'Gerente' ? (showFinalizadas || orden.estado !== 'Completada') : true;
-      })
-      .forEach(orden => {
-        const div = document.createElement('div');
-        div.className = 'orden';
-        let itemsList = orden.items.map(item => `
-          ${item.descripcion} - ${item.cantidad} ${item.unidad_medida} 
-          (Precio: $${item.precio_unitario?.toFixed(2) || '0.00'}, Subtotal: $${item.subtotal?.toFixed(2) || '0.00'})
-        `).join('<br>');
-        div.innerHTML = `
-          <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
-          <p>Ubicación: ${orden.ubicacion}</p>
-          <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
-          <p>Ítems:<br>${itemsList}</p>
-          <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
-          <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
-          ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
-          ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
-          ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
-          ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
-          ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
-          ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
-            <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
-          ` : ''}
-          ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
-            <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
-          ` : ''}
-          ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
-            <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
-          ` : ''}
-          ${role === 'Cotizador' || role === 'Gerente' ? `
-            <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
-            <button onclick="generateExcel('${orden._id}')">Generar Excel</button>
-          ` : ''}
-          ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
-            <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
-            <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
-            <button onclick="approveOrden('${orden._id}')">Aprobar</button>
-          ` : ''}
-          ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
-            <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
-          ` : ''}
-        `;
-        container.appendChild(div);
-      });
-    if (role === 'Cotizador') {
-      loadItemsForCotizador();
+
+    console.log('Respuesta de loadOrdenes:', response.status, response.statusText); // Log para depuración
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Respuesta no JSON' }));
+      console.error('Error en fetch de órdenes:', errorData.error);
+      alert(`Error al cargar órdenes: ${errorData.error || 'Desconocido'}`);
+      return;
     }
+
+    const ordenes = await response.json();
+    console.log('Órdenes cargadas:', ordenes); // Log para ver datos
+
+    const container = document.getElementById('ordenes-container');
+    if (!container) {
+      console.error('Contenedor #ordenes-container no encontrado');
+      return;
+    }
+    container.innerHTML = '';
+
+    const filteredOrdenes = ordenes.filter(orden => {
+      if (role === 'Solicitante') {
+        return !hideFinalizadasSolicitante || orden.estado !== 'Completada'; // Oculta si toggle activado
+      } else if (role === 'Cotizador') {
+        return orden.estado !== 'Completada';
+      } else if (role === 'Gerente') {
+        return showFinalizadas || orden.estado !== 'Completada';
+      }
+      return true;
+    });
+
+    console.log('Órdenes filtradas:', filteredOrdenes); // Log filtrado
+
+    if (filteredOrdenes.length === 0) {
+      container.innerHTML = '<p>No hay órdenes disponibles para este rol/filtro.</p>';
+      return;
+    }
+
+    filteredOrdenes.forEach(orden => {
+      const div = document.createElement('div');
+      div.className = 'orden';
+      let itemsList = orden.items.map(item => `
+        ${item.descripcion} - ${item.cantidad} ${item.unidad_medida} 
+        (Precio: $${item.precio_unitario?.toFixed(2) || '0.00'}, Subtotal: $${item.subtotal?.toFixed(2) || '0.00'})
+      `).join('<br>');
+      div.innerHTML = `
+        <p><strong>Orden #${orden._id}</strong> - ${orden.proyecto} (${orden.estado})</p>
+        <p>Ubicación: ${orden.ubicacion}</p>
+        <p>Depósito: ${orden.deposito?.nombre || 'Desconocido'}</p>
+        <p>Ítems:<br>${itemsList}</p>
+        <p>Total estimado: $${orden.total_estimado?.toFixed(2) || '0.00'}</p>
+        <p>Creado por: ${orden.creado_por?.username || 'Desconocido'}</p>
+        ${orden.modificado_por ? `<p>Modificado por: ${orden.modificado_por?.username || 'Desconocido'} (${new Date(orden.fecha_modificacion).toLocaleString()})</p>` : ''}
+        ${orden.cotizado_por ? `<p>Cotizado por: ${orden.cotizado_por?.username || 'Desconocido'}</p>` : ''}
+        ${orden.comentarios_cotizacion ? `<p>Comentarios de Cotización: ${orden.comentarios_cotizacion}</p>` : ''}
+        ${orden.aprobado_por ? `<p>Aprobado por: ${orden.aprobado_por?.username || 'Desconocido'}</p>` : ''}
+        ${orden.rechazado_por ? `<p>Rechazado por: ${orden.rechazado_por?.username || 'Desconocido'}</p>` : ''}
+        ${orden.razon_rechazo ? `<p><strong>Razón del rechazo:</strong> ${orden.razon_rechazo}</p>` : ''}
+        ${orden.facturas?.length ? `<p>Facturas: ${orden.facturas.join(', ')}</p>` : ''}
+        ${orden.estado === 'Rechazada' && role === 'Solicitante' ? `
+          <button onclick="editOrden('${orden._id}')">Corregir Orden</button>
+        ` : ''}
+        ${role === 'Cotizador' && (orden.estado === 'Pendiente' || orden.estado === 'Modificada') ? `
+          <button onclick="cotizarOrden('${orden._id}')">Cotizar Orden</button>
+        ` : ''}
+        ${role === 'Cotizador' && orden.estado === 'Aprobada' ? `
+          <button onclick="showFacturaForm('${orden._id}')">Cargar Factura</button>
+        ` : ''}
+        ${role === 'Cotizador' || role === 'Gerente' ? `
+          <button onclick="generatePDF('${orden._id}')">Generar PDF</button>
+          <button onclick="generateExcel('${orden._id}')">Generar Excel</button>
+        ` : ''}
+        ${role === 'Gerente' && (orden.estado === 'Pendiente' || orden.estado === 'Cotizada' || orden.estado === 'Modificada') ? `
+          <input type="text" id="razon-rechazo-${orden._id}" placeholder="Razón del rechazo">
+          <button onclick="rejectOrden('${orden._id}')">Rechazar</button>
+          <button onclick="approveOrden('${orden._id}')">Aprobar</button>
+        ` : ''}
+        ${role === 'Gerente' && (orden.estado === 'Rechazada' || orden.estado === 'Aprobada' || orden.estado === 'Completada') ? `
+          <button onclick="deleteOrden('${orden._id}')">Eliminar Orden</button>
+        ` : ''}
+      `;
+      container.appendChild(div);
+    });
+
+    if (role === 'Cotizador') loadItemsForCotizador();
   } catch (err) {
-    console.error('Error al cargar órdenes:', err);
-    alert('Error al cargar órdenes');
+    console.error('Error general en loadOrdenes:', err);
+    alert('Error de conexión al cargar órdenes. Verifica el servidor.');
   }
 }
 
@@ -1570,4 +1620,5 @@ function checkRRHHAccess() {
     document.getElementById('rrhh-button').style.display = 'block';
   }
 }
+
 window.cotizarOrden = cotizarOrden;

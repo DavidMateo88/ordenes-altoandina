@@ -144,11 +144,6 @@ input, select, textarea {
   transition: background-color var(--transition-time), border-color var(--transition-time);
 }
 
-/* Select de estados (múltiple) */
-#filtro-estado {
-  width: 200px;
-  height: 200px; /* Altura para mostrar todas las opciones */
-}
 
 /* Select de proyectos */
 #proyectos-select {
@@ -289,6 +284,23 @@ input:checked + .slider:before {
   right: 10px;
   z-index: 1000; /* Asegura que esté por encima de otros elementos */
 }
+
+/* Selects (como filtros) */
+select {
+  padding: 8px;
+  border: 1px solid var(--table-border);
+  border-radius: 5px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color var(--transition-time), border-color var(--transition-time);
+  max-width: 200px; /* Compacto para no ocupar mucho espacio */
+}
+
+select:hover {
+  border-color: var(--btn-primary-bg); /* Efecto hover para interactividad */
+}
+
 
 /* 
  * SECCIÓN 4: ESTILOS RESPONSIVOS

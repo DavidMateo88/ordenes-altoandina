@@ -61,7 +61,6 @@
           <!-- Formulario para crear/editar órdenes (visible para Solicitante) -->
           <div id="orden-form" style="display: none;">
             <h3>Crear/Editar Orden</h3>
-            <!-- (Copia el contenido original de orden-form aquí) -->
             <input type="hidden" id="orden-id">
             <label for="proyecto">Proyecto:</label>
             <select id="proyecto" required>
@@ -90,9 +89,8 @@
           </div>
           <!-- Controles y lista de órdenes -->
           <div id="ordenes-controls" style="display: none;">
-            <!-- (Copia el contenido original de ordenes-controls aquí) -->
             <label for="filtro-estado">Filtrar por estado:</label>
-            <select id="filtro-estado" multiple size="8">
+            <select id="filtro-estado">
               <option value="Todas">Todas</option>
               <option value="Pendiente">Pendiente</option>
               <option value="Cotizada">Cotizada</option>
@@ -102,6 +100,41 @@
               <option value="Completada">Completada</option>
               <option value="Ocultar todas">Ocultar todas</option>
             </select>
+            <!-- Dentro de #ordenes-controls -->
+<div id="ordenes-controls" style="display: none;">
+  <label for="filtro-estado">Filtrar por estado:</label>
+  <select id="filtro-estado">
+    <option value="Todas">Todas</option>
+    <option value="Pendiente">Pendiente</option>
+    <option value="Cotizada">Cotizada</option>
+    <option value="Modificada">Modificada</option>
+    <option value="Aprobada">Aprobada</option>
+    <option value="Rechazada">Rechazada</option>
+    <option value="Completada">Completada</option>
+    <option value="Ocultar todas">Ocultar todas</option>
+  </select>
+  <label for="filtro-proyecto">Filtrar por proyecto:</label>
+  <select id="filtro-proyecto">
+    <option value="">Todos</option>
+  </select>
+  <label for="ordenar-por">Ordenar por:</label>
+  <select id="ordenar-por">
+    <option value="fecha-desc">Más reciente</option>
+    <option value="fecha-asc">Más antiguo</option>
+    <option value="estado">Estado</option>
+  </select>
+  <!-- Nuevo toggle para ocultar finalizadas (solo visible para Solicitante) -->
+  <div id="toggle-finalizadas-solicitante" style="display: none;">
+    <label class="switch">
+      <input type="checkbox" id="hideFinalizadas" checked onchange="toggleFinalizadasSolicitante()">
+      <span class="slider"></span>
+    </label>
+    <span>Ocultar Finalizadas</span>
+  </div>
+  <button onclick="generateOrdenesExcel()">Exportar a Excel</button>
+  <button onclick="generateOrdenesPDF()">Exportar a PDF</button>
+</div>
+
             <label for="filtro-proyecto">Filtrar por proyecto:</label>
             <select id="filtro-proyecto">
               <option value="">Todos</option>
@@ -131,7 +164,6 @@
           <div id="items-list" style="display: none;">
             <h2>Lista de Ítems en Órdenes No Finalizadas</h2>
             <div id="items-controls">
-              <!-- (Copia el contenido original aquí) -->
               <label for="filtro-proyecto-items">Filtrar por proyecto:</label>
               <select id="filtro-proyecto-items">
                 <option value="">Todos</option>
